@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="_图层_2" data-name="图层 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #fff;
+        stroke-width: 0px;
+      }
+    </style>
+  </defs>
+  <g id="_指南针" data-name="指南针">
+    <g>
+      <path class="cls-1" d="m64,6c31.98,0,58,26.02,58,58s-26.02,58-58,58S6,95.98,6,64,32.02,6,64,6m0-6C28.65,0,0,28.65,0,64s28.65,64,64,64,64-28.65,64-64S99.35,0,64,0h0Z"/>
+      <polygon class="cls-1" points="64.19 25.43 40.12 93.19 64.19 63.78 89 93.19 64.19 25.43"/>
+    </g>
+  </g>
+</svg>
