@@ -182,3 +182,8 @@ test/
 
 cairo.dll
 
+# download from https://map.vanbyte.com/street.html
+asset/area_geojson/
+
+# download from https://github.com/modood/Administrative-divisions-of-China
+asset/area_code.sqlite
