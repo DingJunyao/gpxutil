@@ -1,5 +1,8 @@
 # gpx2csv.py
 gpxpy
+geopandas
+shapely
+tqdm
 
 # create_pic.py
 # note that you need to install cairo to use cairosvg

@@ -1,13 +1,17 @@
 import csv
 import math
-from typing import List
 import os
 import sqlite3
+from datetime import datetime
+from typing import List
 
-import gpxpy.gpx
 import geopandas as gpd
+import gpxpy.gpx
 from geopandas import GeoDataFrame
 from shapely.geometry import Point
+
+from tqdm import tqdm
+
 
 # 计算方位角
 def calculate_bearing(point1, point2):
@@ -26,7 +30,8 @@ def calculate_bearing(point1, point2):
 def load_area_gdf_list(geojson_dir: str) -> List[GeoDataFrame]:
     gdf_list = []
     # 读取目录里所有文件
-    for filename in os.listdir(geojson_dir):
+    filename_list = os.listdir(geojson_dir)
+    for filename in tqdm(filename_list, total=len(filename_list), desc="Load Area GeoJSON files", unit='file(s)'):
         if filename.endswith(".json") or filename.endswith(".geojson"):
             gdf_list.append(gpd.read_file(os.path.join(geojson_dir, filename)))
     return gdf_list
@@ -62,7 +67,7 @@ def segment_to_dict_list(segment: gpxpy.gpx.GPXTrackSegment, area_gdf_list: List
     total_distance = 0
     ret_list: List[dict] = []
 
-    for index, point in enumerate(segment.points):
+    for index, point in tqdm(enumerate(segment.points), total=len(segment.points), desc="Processing GPX Points", unit='point(s)'):
         if index > 0:
             # distance = calculate_distance(segment.points[index - 1], point)
             prev_point = segment.points[index - 1]
@@ -119,7 +124,8 @@ def dict_list_to_csv(dict_list: List[dict], csv_file_path: str):
         # 写入数据行
         for row_dict in dict_list:
             write_row = row_dict.copy()
-            write_row['time'] = write_row['time'].strftime('%Y-%m-%d %H:%M:%S')
+            if 'time' in write_row and write_row['time']:
+                write_row['time'] = write_row['time'].astimezone(datetime.now().tzinfo).strftime('%Y-%m-%d %H:%M:%S')
             writer.writerow(write_row)
 
 def single_segment_gpx_file_path_to_csv(gpx_file_path: str, csv_file_path: str, area_gdf_list: List[GeoDataFrame], area_code_conn: sqlite3.Connection):
