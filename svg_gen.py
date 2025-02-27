@@ -43,9 +43,9 @@ WAY_NUM_PAD_TEMPLATE = 'asset/template/way_num.svg'
 #     'C': 'asset/jtbz_c'
 # }
 FONT_TYPE_DIRECTORY_DICT = {
-    'A': 'asset/SourceHanSansSC-Bold.otf',
-    'B': 'asset/jtbz_B.ttf',
-    'C': 'asset/jtbz_C.ttf'
+    'A': 'asset/font/SourceHanSansSC-Bold.otf',
+    'B': 'asset/font/jtbz_B.ttf',
+    'C': 'asset/font/jtbz_C.ttf'
 }
 EXPWY_TEMPLATE_DICT = {
     '1': 'asset/template/expwy_1.svg',

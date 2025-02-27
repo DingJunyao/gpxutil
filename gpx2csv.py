@@ -90,6 +90,7 @@ def segment_to_dict_list(segment: gpxpy.gpx.GPXTrackSegment, area_gdf_list: List
         ret_list.append({
             'index': index,
             'time': point.time,
+            # 'time_iso': point.time.isoformat(),
             'elapsed_time': point.time_difference(first_point),
             'longitude': point.longitude,
             'latitude': point.latitude,
@@ -135,4 +136,4 @@ def single_segment_gpx_file_path_to_csv(gpx_file_path: str, csv_file_path: str, 
 if __name__ == '__main__':
     gdf_list = load_area_gdf_list(r"asset\area_geojson")
     conn = sqlite3.connect(r"asset\area_code.sqlite")
-    single_segment_gpx_file_path_to_csv('test/test.gpx', 'test/test.csv', gdf_list, conn)
+    single_segment_gpx_file_path_to_csv('test/20250226132250.gpx', 'test/20250226132250-2.csv', gdf_list, conn)
