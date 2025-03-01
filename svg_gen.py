@@ -1,6 +1,5 @@
 from functools import reduce
 import xml.etree.ElementTree as ET
-from tempfile import template
 
 import svgwrite
 from svgpathtools import svg2paths

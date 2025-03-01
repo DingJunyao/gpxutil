@@ -101,6 +101,12 @@ def segment_to_dict_list(segment: gpxpy.gpx.GPXTrackSegment, area_gdf_list: List
             'province': area_info[0],
             'city': area_info[1],
             'area': area_info[2],
+            'province_en': '',
+            'city_en': '',
+            'area_en': '',
+            'road_num': '',
+            'road_name': '',
+            'road_name_en': '',
         })
     return ret_list
 

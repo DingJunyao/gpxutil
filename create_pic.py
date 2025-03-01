@@ -330,28 +330,28 @@ def generate_pic_from_csv(path: str, start_index = 0, end_index = -1, start_inde
     dict_list = read_csv_with_additional_info(path, start_index, end_index, start_index_after_fill, end_index_after_fill, crop_start, crop_end)
     generate_pic_from_processed_dict_list(dict_list, crop_start)
 
-def generate_video_from_pics(from_path: str, gen_path: str):
-    imglist = []
-    for file_name in sorted(os.listdir(from_path)):
-        if file_name.endswith('.png'):
-            imglist.append(os.path.join(from_path, file_name))
+# def generate_video_from_pics(from_path: str, gen_path: str):
+#     imglist = []
+#     for file_name in sorted(os.listdir(from_path)):
+#         if file_name.endswith('.png'):
+#             imglist.append(os.path.join(from_path, file_name))
+#
+#     clip = moviepy.ImageSequenceClip(imglist, fps=1, with_mask=True, is_mask=False)  # 这里参数似乎没用
+#     ffmpeg_write_video(clip, gen_path, fps=1, codec="qtrle", pixel_format="rgba")
 
-    clip = moviepy.ImageSequenceClip(imglist, fps=1, with_mask=True, is_mask=False)  # 这里参数似乎没用
-    ffmpeg_write_video(clip, gen_path, fps=1, codec="qtrle", pixel_format="rgba")
+# # 将 PIL.Image 对象转换为 NumPy 数组
+# def image_to_array(image):
+#     return np.array(image)
 
-# 将 PIL.Image 对象转换为 NumPy 数组
-def image_to_array(image):
-    return np.array(image)
-
-def images_to_video(images: list[Image], output_path, fps=1):
-    # 获取图像尺寸
-    frame_size = images[0].size
-
-    # 将所有 PIL.Image 对象转换为 NumPy 数组
-    image_arrays = [image_to_array(image) for image in images]
-
-    # 使用 imageio 写入视频
-    imageio.mimsave(output_path, image_arrays, fps=fps, output_params=['-vcodec', 'qtrle', '-pix_fmt', 'rgba'])
+# def images_to_video(images: list[Image], output_path, fps=1):
+#     # 获取图像尺寸
+#     frame_size = images[0].size
+#
+#     # 将所有 PIL.Image 对象转换为 NumPy 数组
+#     image_arrays = [image_to_array(image) for image in images]
+#
+#     # 使用 imageio 写入视频
+#     imageio.mimsave(output_path, image_arrays, fps=fps, output_params=['-vcodec', 'qtrle', '-pix_fmt', 'rgba'])
 
 if __name__ == '__main__':
     # img = generate_pic(

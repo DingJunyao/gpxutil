@@ -1,18 +1,22 @@
+tqdm
+
 # gpx2csv.py
 gpxpy
 geopandas
 shapely
-tqdm
-
-# create_pic.py
-# note that you need to install cairo to use cairosvg
-cairosvg
-pillow
 
 # svg_gen.py
 svgwrite
 svgpathtools
 fontTools
+
+# create_pic.py
+# note that you need to install cairo to use cairosvg
+cairosvg
+pillow
+moviepy
+numpy
+imageio
 
 # fontforge_export_svg.py
 # need to run in fontforge python environment
