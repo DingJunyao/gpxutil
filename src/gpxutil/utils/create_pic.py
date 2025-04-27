@@ -18,10 +18,10 @@ from moviepy.video.io.ffmpeg_writer import ffmpeg_write_video
 
 from svg_gen import generate_way_num_pad, generate_expwy_pad
 
-chinese_font_path = "asset/font/SourceHanSans_static_super_otc.ttc"
-english_font_path = "./asset/font/SourceSans3-Regular.otf"
-compass_img_path = "./asset/compass.svg"
-route_time_sep_img_path = "./asset/route_time_sep.svg"
+chinese_font_path = "../../../asset/font/SourceHanSans_static_super_otc.ttc"
+english_font_path = "../../../asset/font/SourceSans3-Regular.otf"
+compass_img_path = "../../../asset/compass.svg"
+route_time_sep_img_path = "../../../asset/route_time_sep.svg"
 try:
     big_font = ImageFont.truetype(chinese_font_path, 64, 12)
 except IOError:
@@ -380,6 +380,6 @@ if __name__ == '__main__':
     # )
     # img.show()
     # img.close()
-    pic_list = generate_pic_from_csv('test/20250226132250.csv', start_index_after_fill=0, end_index_after_fill=-17, crop_start=1342, crop_end=1358)
+    pic_list = generate_pic_from_csv('../../../test/20250226132250.csv', start_index_after_fill=0, end_index_after_fill=-17, crop_start=1342, crop_end=1358)
     # 生成视频在 Pr 中有问题，故只做图像序列
     # generate_video_from_pics('out/test/', 'out/test.mov')

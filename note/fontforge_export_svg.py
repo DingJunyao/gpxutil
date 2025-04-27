@@ -30,6 +30,6 @@ def font_to_svgs(font_path, output_dir):
 
 
 if __name__ == "__main__":
-    font_path = r"asset/font/SourceHanSansCN-Bold.ttf"  # 替换为你的字体文件路径
+    font_path = r"../asset/font/SourceHanSansCN-Bold.ttf"  # 替换为你的字体文件路径
     output_dir = r'.\asset\source_han_sans_cn_bold'  # 替换为你想要保存SVG文件的目录
     font_to_svgs(font_path, output_dir)

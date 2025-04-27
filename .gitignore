@@ -187,3 +187,7 @@ asset/area_geojson/
 
 # download from https://github.com/modood/Administrative-divisions-of-China
 asset/area_code.sqlite
+
+config/conf.yaml
+
+note/

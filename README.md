@@ -23,7 +23,8 @@
 
 ```python
 import sqlite3
-from gpx2csv import load_area_gdf_list, single_segment_gpx_file_path_to_csv
+from src.gpxutil.utils.gpx2csv import single_segment_gpx_file_path_to_csv
+from src.gpxutil.utils.gdf_handler import load_area_gdf_list
 
 gdf_list = load_area_gdf_list('行政区划地图边界数据目录路径')
 conn = sqlite3.connect('行政区划数据库文件路径')
@@ -60,16 +61,16 @@ CSV 文件的列包括：
 暂不支持京津冀高速，且只做了汉语版本的。
 
 ```python
-from svg_gen import generate_way_num_pad_to_file, generate_expwy_pad_to_file
+from src.gpxutil.utils.svg_gen import generate_way_num_pad_to_file, generate_expwy_pad_to_file
 
 # 国道、省道、县道、乡道等道路编号（交叉路口告知标志，路 5，参见图 210、图 E.171）
 generate_way_num_pad_to_file('G221', './out/G221.svg')
 # 高速公路编号（参见图 256、图 E.201)
-generate_expwy_pad_to_file('./out/expwy_03.svg', 'G4511')   # 国家高速
-generate_expwy_pad_to_file('./out/expwy_07.svg', 'S2', '豫') # 省级高速
+generate_expwy_pad_to_file('./out/expwy_03.svg', 'G4511')  # 国家高速
+generate_expwy_pad_to_file('./out/expwy_07.svg', 'S2', '豫')  # 省级高速
 # 高速公路编号（命名编号，路 36，参见图 257、图 E.202)
-generate_expwy_pad_to_file('./out/expwy_04.svg', 'G5', name='测测高速') # 国家高速
-generate_expwy_pad_to_file('./out/expwy_10.svg', 'S2', '豫', name='测试省级')    # 省级高速
+generate_expwy_pad_to_file('./out/expwy_04.svg', 'G5', name='测测高速')  # 国家高速
+generate_expwy_pad_to_file('./out/expwy_10.svg', 'S2', '豫', name='测试省级')  # 省级高速
 ```
 
 需自行下载：[交通标志专用字体](https://xxgk.mot.gov.cn/2020/jigou/glj/202006/t20200623_3312662.html)。记下解压后各字体的路径，修改 `svg_gen.py` 中以下部分：
@@ -107,9 +108,10 @@ GREEN = '#006E55'
 根据修改后的 CSV 文件，生成信息图的图像序列。理论上能够生成透明的视频文件，但实际发现 Premiere 无法处理这种文件，故目前还是生成图片序列，导入到 Premiere 内。
 
 ```python
-from create_pic import generate_pic_from_csv
+from src.gpxutil.utils.create_pic import generate_pic_from_csv
 
-pic_list = generate_pic_from_csv('CSV 文件路径', start_index_after_fill=0, end_index_after_fill=-17, crop_start=1342, crop_end=1358)
+pic_list = generate_pic_from_csv('CSV 文件路径', start_index_after_fill=0, end_index_after_fill=-17, crop_start=1342,
+                                 crop_end=1358)
 ```
 
 参数含义：
