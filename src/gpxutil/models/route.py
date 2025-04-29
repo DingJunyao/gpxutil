@@ -12,9 +12,9 @@ from tqdm import tqdm
 from src.gpxutil.utils import csv_util
 from src.gpxutil.utils.data_type_processor import process_or_none, float_or_none
 from src.gpxutil.utils.datetime_util import datetime_yyyymmdd_slash_time_microsecond_tz
-from src.gpxutil.utils.db_connect import auto_connect_area_db
-from src.gpxutil.utils.route_util import calculate_bearing, get_area_info
+from src.gpxutil.utils.db_connect import AreaCodeConnectHandler
 from src.gpxutil.utils.gdf_handler import GDFListHandler
+from src.gpxutil.utils.route_util import calculate_bearing, get_area_info
 from src.gpxutil.utils.gpx_convert import convert_single_point
 
 
@@ -91,33 +91,29 @@ class RoutePoint:
     memo: Optional[str] = None
     """备注"""
 
-    def set_area(self, area_gdf_list: list[GeoDataFrame] = None, area_code_conn: sqlite3.Connection = None, force: bool = False):
+    def set_area(self, area_gdf_list: list[GeoDataFrame], area_code_conn: sqlite3.Connection, force: bool = False):
         """
         填写行政区划。目前的做法是：加载各地区的 geojson 文件（area_gdf_list），判断点属于哪个地区的，得到代码，在给定的 SQLite 文件中找到对应代码的行政区划。
-        :param area_gdf_list: 各地区的 geojson 文件转换为 GeoDataFrame 后的列表。如无则执行时加载
-        :param area_code_conn: 存放行政区划代码关系的 SQLite 数据库连接。如无则执行时加载
+        :param area_gdf_list: 各地区的 geojson 文件转换为 GeoDataFrame 后的列表
+        :param area_code_conn: 存放行政区划代码关系的 SQLite 数据库连接
         :param force: 对已经填写地区的点，是否覆盖内容
         :return: None
         """
-        need_close_conn = False
         if self.province is not None and self.city is not None and self.area is not None and not force:
             return
-        if area_gdf_list is None:
-            area_gdf_list = GDFListHandler().list
-        with auto_connect_area_db(conn=area_code_conn) as conn:
-            area_info = get_area_info(Point(self.longitude, self.latitude), area_gdf_list, conn)
-            province_result = area_info[0] if area_info is not None else None
-            city_result = area_info[1] if area_info is not None else None
-            area_result = area_info[2] if area_info is not None else None
-            if self.province != province_result:
-                self.province_en = None
-            if self.city != city_result:
-                self.city_en = None
-            if self.area != area_result:
-                self.area_en = None
-            self.province = province_result
-            self.city = city_result
-            self.area = area_result
+        area_info = get_area_info(Point(self.longitude, self.latitude), area_gdf_list, area_code_conn)
+        province_result = area_info[0] if area_info is not None else None
+        city_result = area_info[1] if area_info is not None else None
+        area_result = area_info[2] if area_info is not None else None
+        if self.province != province_result:
+            self.province_en = None
+        if self.city != city_result:
+            self.city_en = None
+        if self.area != area_result:
+            self.area_en = None
+        self.province = province_result
+        self.city = city_result
+        self.area = area_result
 
     def transform_coordinate(self, coordinate_type, transformed_coordinate_type, force: bool = False):
         """
@@ -284,26 +280,23 @@ class Route:
         for point in tqdm(self.points, total=len(self.points), desc="Transform Coordinate", unit='point(s)'):
             point.transform_coordinate(self.coordinate_type, self.transformed_coordinate_type, force)
 
-    def set_area(self, area_gdf_list: list[GeoDataFrame] = None, area_code_conn: sqlite3.Connection = None, force: bool = False):
+    def set_area(self, area_gdf_list: list[GeoDataFrame], area_code_conn: sqlite3.Connection, force: bool = False):
         """
         填写行政区划。目前的做法是：加载各地区的 geojson 文件（area_gdf_list），判断点属于哪个地区的，得到编码，在给定的 SQLite 文件中找到对应编码的行政区划。
-        :param area_gdf_list: 各地区的 geojson 文件转换为 GeoDataFrame 后的列表。如无则执行时加载
-        :param area_code_conn: 存放行政区划代码关系的 SQLite 数据库连接。如无则执行时加载
+        :param area_gdf_list: 各地区的 geojson 文件转换为 GeoDataFrame 后的列表
+        :param area_code_conn: 存放行政区划代码关系的 SQLite 数据库连接
         :param force: 对已经填写地区的点，是否覆盖内容
         :return: None
         """
-        if area_gdf_list is None:
-            area_gdf_list = GDFListHandler().list
-        with auto_connect_area_db(conn=area_code_conn) as conn:
-            # list(map(lambda point: point.set_area(area_gdf_list, conn, force), self.points))
-            for point in tqdm(self.points, total=len(self.points), desc="Set Area", unit='point(s)'):
-                point.set_area(area_gdf_list, conn, force)
+        # list(map(lambda point: point.set_area(area_gdf_list, area_code_conn, force), self.points))
+        for point in tqdm(self.points, total=len(self.points), desc="Set Area", unit='point(s)'):
+            point.set_area(area_gdf_list, area_code_conn, force)
 
     @staticmethod
     def from_gpx_obj(
             gpx: gpxpy.gpx.GPX, track_index: int = 0, segment_index: int = 0,
-            transform_coordinate: bool = True, coordinate_type: str = None, transformed_coordinate_type: str = None,
-            set_area: bool = True, area_gdf_list: list[GeoDataFrame] = None, area_code_conn: sqlite3.Connection = None
+            transform_coordinate: bool = False, coordinate_type: str = None, transformed_coordinate_type: str = None,
+            set_area: bool = False, area_gdf_list: list[GeoDataFrame] = None, area_code_conn: sqlite3.Connection = None
     ) -> 'Route':
         """
         从 GPX 对象导入数据
@@ -311,76 +304,77 @@ class Route:
         :param track_index: track 序号
         :param segment_index: segment 序号
         :param transform_coordinate: 是否转换坐标
-        :param coordinate_type: 原坐标类型
-        :param transformed_coordinate_type: 转换后坐标类型
+        :param coordinate_type: 原坐标类型。transform_coordinate == True 时必填
+        :param transformed_coordinate_type: 转换后坐标类型。transform_coordinate == True 时必填
         :param set_area: 是否填写行政区划
-        :param area_gdf_list: 各地区的 geojson 文件转换为 GeoDataFrame 后的列表。如无则执行时加载
-        :param area_code_conn: 存放行政区划代码关系的 SQLite 数据库连接。如无则执行时加载
+        :param area_gdf_list: 各地区的 geojson 文件转换为 GeoDataFrame 后的列表。set_area == True 时必填
+        :param area_code_conn: 存放行政区划代码关系的 SQLite 数据库连接。set_area == True 时必填
         :return: Route
         """
-        if area_gdf_list is None:
-            area_gdf_list = GDFListHandler().list
-        with auto_connect_area_db(conn=area_code_conn) as conn:
-            segment = gpx.tracks[track_index].segments[segment_index]
-            first_point = segment.points[0]
-            course = 0
-            total_distance = 0
-            ret_list: list[RoutePoint] = []
+        if transform_coordinate is True and (coordinate_type is None or transformed_coordinate_type is None):
+            raise AttributeError("transform_coordinate is True, but coordinate_type or transformed_coordinate_type is None")
+        if set_area is True and (area_gdf_list is None or area_code_conn is None):
+            raise AttributeError("set_area is True, but area_gdf_list or area_code_conn is None")
+        segment = gpx.tracks[track_index].segments[segment_index]
+        first_point = segment.points[0]
+        course = 0
+        total_distance = 0
+        ret_list: list[RoutePoint] = []
 
-            for index, point in tqdm(enumerate(segment.points), total=len(segment.points), desc="Processing GPX Points",
-                                     unit='point(s)'):
-                if transform_coordinate:
-                    transformed_coordinate = convert_single_point(point.longitude, point.latitude,
-                                                                  coordinate_type,
-                                                                  transformed_coordinate_type)
+        for index, point in tqdm(enumerate(segment.points), total=len(segment.points), desc="Processing GPX Points",
+                                 unit='point(s)'):
+            if transform_coordinate:
+                transformed_coordinate = convert_single_point(point.longitude, point.latitude,
+                                                              coordinate_type,
+                                                              transformed_coordinate_type)
+            else:
+                transformed_coordinate = (point.longitude, point.latitude)
+            if set_area:
+                area_info = get_area_info(Point(point.longitude, point.latitude), area_gdf_list, area_code_conn)
+                province_result = area_info[0] if area_info is not None else None
+                city_result = area_info[1] if area_info is not None else None
+                area_result = area_info[2] if area_info is not None else None
+            else:
+                province_result = None
+                city_result = None
+                area_result = None
+            if index > 0:
+                # distance = calculate_distance(segment.points[index - 1], point)
+                prev_point = segment.points[index - 1]
+                distance = point.distance_3d(prev_point)
+                speed = distance / point.time_difference(prev_point)
+                if point.course:
+                    course = point.course
                 else:
-                    transformed_coordinate = (point.longitude, point.latitude)
-                if set_area:
-                    area_info = get_area_info(Point(point.longitude, point.latitude), area_gdf_list, conn)
-                    province_result = area_info[0] if area_info is not None else None
-                    city_result = area_info[1] if area_info is not None else None
-                    area_result = area_info[2] if area_info is not None else None
-                else:
-                    province_result = None
-                    city_result = None
-                    area_result = None
-                if index > 0:
-                    # distance = calculate_distance(segment.points[index - 1], point)
-                    prev_point = segment.points[index - 1]
-                    distance = point.distance_3d(prev_point)
-                    speed = distance / point.time_difference(prev_point)
-                    if point.course:
-                        course = point.course
-                    else:
-                        course_tmp = calculate_bearing(prev_point, point)
-                        if course_tmp != 0:
-                            course = course_tmp
-                    total_distance += distance
-                else:
-                    distance = 0
-                    speed = 0
-                    course = 0
-                ret_list.append(RoutePoint(
-                    index=index,
-                    time=point.time,
-                    elapsed_time=point.time_difference(first_point),
-                    longitude=point.longitude,
-                    latitude=point.latitude,
-                    longitude_transformed=transformed_coordinate[0],
-                    latitude_transformed=transformed_coordinate[1],
-                    elevation=point.elevation,
-                    distance=total_distance,
-                    course=course,
-                    speed=speed,
-                    province=province_result,
-                    city=city_result,
-                    area=area_result,
-                ))
-            return Route(
-                points=ret_list,
-                coordinate_type=coordinate_type if transform_coordinate else None,
-                transformed_coordinate_type=transformed_coordinate_type if transform_coordinate else None,
-            )
+                    course_tmp = calculate_bearing(prev_point, point)
+                    if course_tmp != 0:
+                        course = course_tmp
+                total_distance += distance
+            else:
+                distance = 0
+                speed = 0
+                course = 0
+            ret_list.append(RoutePoint(
+                index=index,
+                time=point.time,
+                elapsed_time=point.time_difference(first_point),
+                longitude=point.longitude,
+                latitude=point.latitude,
+                longitude_transformed=transformed_coordinate[0],
+                latitude_transformed=transformed_coordinate[1],
+                elevation=point.elevation,
+                distance=total_distance,
+                course=course,
+                speed=speed,
+                province=province_result,
+                city=city_result,
+                area=area_result,
+            ))
+        return Route(
+            points=ret_list,
+            coordinate_type=coordinate_type if transform_coordinate else None,
+            transformed_coordinate_type=transformed_coordinate_type if transform_coordinate else None,
+        )
 
     @staticmethod
     def from_gpx_obj_raw(gpx: gpxpy.gpx.GPX, track_index: int = 0, segment_index: int = 0) -> 'Route':
@@ -396,8 +390,8 @@ class Route:
     @staticmethod
     def from_gpx_file(
             gpx_file_path: str, track_index: int = 0, segment_index: int = 0,
-            transform_coordinate: bool = True, coordinate_type: str = None, transformed_coordinate_type: str = None,
-            set_area: bool = True, area_gdf_list: list[GeoDataFrame] = None, area_code_conn: sqlite3.Connection = None
+            transform_coordinate: bool = False, coordinate_type: str = None, transformed_coordinate_type: str = None,
+            set_area: bool = False, area_gdf_list: list[GeoDataFrame] = None, area_code_conn: sqlite3.Connection = None
     ) -> 'Route':
         """
         从 GPX 文件导入数据
@@ -405,11 +399,11 @@ class Route:
         :param track_index: track 序号
         :param segment_index: segment 序号
         :param transform_coordinate: 是否转换坐标
-        :param coordinate_type: 原坐标类型
-        :param transformed_coordinate_type: 转换后坐标类型
+        :param coordinate_type: 原坐标类型。transform_coordinate == True 时必填
+        :param transformed_coordinate_type: 转换后坐标类型。transform_coordinate == True 时必填
         :param set_area: 是否填写行政区划
-        :param area_gdf_list: 各地区的 geojson 文件转换为 GeoDataFrame 后的列表。如无则执行时加载
-        :param area_code_conn: 存放行政区划代码关系的 SQLite 数据库连接。如无则执行时加载
+        :param area_gdf_list: 各地区的 geojson 文件转换为 GeoDataFrame 后的列表。set_area == True 时必填
+        :param area_code_conn: 存放行政区划代码关系的 SQLite 数据库连接。set_area == True 时必填
         :return: Route
         """
         with open(gpx_file_path, 'r') as gpx_file:
@@ -427,17 +421,17 @@ class Route:
         """
         return Route.from_gpx_file(gpx_file_path, track_index, segment_index, False, None, None, False, None, None)
 
-    def to_gpx_obj(self, transform_coordinate: bool = False) -> gpxpy.gpx.GPX:
+    def to_gpx_obj(self, export_transformed_coordinate: bool = False) -> gpxpy.gpx.GPX:
         """
         导出为 GPX 对象
-        :param transform_coordinate: 是否转换坐标
+        :param export_transformed_coordinate: 是否输出转换后的坐标
         :return: gpxpy.gpx.GPX
         """
         gpx = gpxpy.gpx.GPX()
         gpx_track = gpxpy.gpx.GPXTrack()
         gpx_segment = gpxpy.gpx.GPXTrackSegment()
         for point in self.points:
-            if transform_coordinate:
+            if export_transformed_coordinate:
                 lat = point.latitude_transformed
                 lon = point.longitude_transformed
             else:
@@ -453,14 +447,14 @@ class Route:
         gpx.tracks.append(gpx_track)
         return gpx
 
-    def to_gpx_file(self, gpx_file_path: str, transform_coordinate: bool = False):
+    def to_gpx_file(self, gpx_file_path: str, export_transformed_coordinate: bool = False):
         """
         导出为 GPX 文件
         :param gpx_file_path: GPX 文件路径
-        :param transform_coordinate: 是否转换坐标
+        :param export_transformed_coordinate: 是否输出转换后的坐标
         :return: None
         """
-        gpx = self.to_gpx_obj(transform_coordinate)
+        gpx = self.to_gpx_obj(export_transformed_coordinate)
         with open(gpx_file_path, 'w', encoding='utf-8') as f:
             f.write(gpx.to_xml())
 
@@ -531,16 +525,6 @@ class Route:
         :param transformed_coordinate_type: 转换后坐标类型
         :return: Route
         """
-
-        # def custom_row_processor(row: dict) -> dict:
-        #     call_func_to_specified_dict_key_list(row, ['elapsed_time', 'latitude', 'longitude', 'latitude_transformed', 'longitude_transformed', 'elevation', 'distance', 'course', 'speed'], float)
-        #     # 字段合并示例
-        #     if all(key in row for key in ['time_date', 'time_time']):
-        #         row['time'] = datetime.strptime(f'{row["time_date"]} {row["time_time"]}', '%Y/%m/%d %H:%M:%S')
-        #         del row['time_date'], row['time_time']  # 删除原字段
-        #     return row
-
-        # csv_dict_list = csv_util.csv_to_dict_list(csv_file_path, processor=custom_row_processor, encoding='utf-8-sig')
         csv_dict_list = csv_util.csv_to_dict_list(csv_file_path, encoding='utf-8-sig')
         return Route(
             points = [RoutePoint.from_csv_dict_obj(point) for point in csv_dict_list],
@@ -549,9 +533,16 @@ class Route:
         )
 
 if __name__ == '__main__':
-    test_route = Route.from_gpx_file('../../../test/gpx_sample/from_gps_logger.gpx', coordinate_type='wgs84', transformed_coordinate_type='gcj02')
-    test_route_2 = Route.from_gpx_file('../../../test/gpx_sample/from_gps_logger.gpx', coordinate_type='wgs84',
-                                     transformed_coordinate_type='gcj02')
+    test_route = Route.from_gpx_file(
+        '../../../test/gpx_sample/from_gps_logger.gpx',
+        transform_coordinate=True, coordinate_type='wgs84', transformed_coordinate_type='gcj02',
+        set_area=True, area_gdf_list=GDFListHandler().list, area_code_conn=AreaCodeConnectHandler().conn
+    )
+    test_route.to_gpx_file('../../../test/gpx_sample/from_gps_logger_to_gpx.gpx', export_transformed_coordinate=True)
+    test_route_2 = Route.from_gpx_file('../../../test/gpx_sample/from_gps_logger.gpx',
+        transform_coordinate=True, coordinate_type='wgs84', transformed_coordinate_type='gcj02',
+        set_area=True, area_gdf_list=GDFListHandler().list, area_code_conn=AreaCodeConnectHandler().conn
+    )
     test_route.to_json_file('../../../test/gpx_sample/from_gps_logger_to_json.json')
     test_route_from_json = Route.from_json_file('../../../test/gpx_sample/from_gps_logger_to_json.json')
     test_route.to_csv('../../../test/gpx_sample/from_gps_logger_to_csv.csv')
