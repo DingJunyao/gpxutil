@@ -7,7 +7,7 @@ shapely
 
 # svg_gen.py
 svgwrite
-svgpathtools
+svgpathtools @ https://github.com/bcwhite-code/svgpathtools/archive/refs/heads/master.zip
 fontTools
 
 # create_pic.py

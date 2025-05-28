@@ -47,19 +47,23 @@ def get_area_id(point: Point, area_gdf_list: List[GeoDataFrame]) -> str:
 
 def get_area_info(point: Point, area_gdf_list: List[GeoDataFrame], area_code_conn: sqlite3.Connection):
     cursor = area_code_conn.cursor()
-    area_id = get_area_id(point, area_gdf_list)
-    sql = """
-    select province.name, city.name, area.name
-    from province, city, area
-    where
-        province.code = area.provinceCode
-        and city.code = area.cityCode
-        and area.code = ?
-    """
-    cursor.execute(sql, (area_id,))
-    result = cursor.fetchone()
-    cursor.close()
-    return result
+    try:
+        area_id = get_area_id(point, area_gdf_list)
+        sql = """
+        select province.name, city.name, area.name
+        from province, city, area
+        where
+            province.code = area.provinceCode
+            and city.code = area.cityCode
+            and area.code = ?
+        """
+        cursor.execute(sql, (area_id,))
+        result = cursor.fetchone()
+        return result
+    except ValueError:
+        return None, None, None
+    finally:
+        cursor.close()
 
 def segment_to_dict_list(segment: gpxpy.gpx.GPXTrackSegment, area_gdf_list: List[GeoDataFrame], area_code_conn: sqlite3.Connection) -> List[dict]:
     first_point = segment.points[0]
@@ -98,9 +102,9 @@ def segment_to_dict_list(segment: gpxpy.gpx.GPXTrackSegment, area_gdf_list: List
             'distance': total_distance,
             'course': course,
             'speed': speed,
-            'province': area_info[0],
-            'city': area_info[1],
-            'area': area_info[2],
+            'province': area_info[0] if area_info else '',
+            'city': area_info[1] if area_info else '',
+            'area': area_info[2] if area_info else '',
             'province_en': '',
             'city_en': '',
             'area_en': '',
@@ -122,7 +126,7 @@ def dict_list_to_csv(dict_list: List[dict], csv_file_path: str):
     fieldnames = dict_list[0].keys()
 
     # 打开 CSV 文件并写入数据
-    with open(csv_file_path, mode='w', newline='', encoding='utf-8') as csv_file:
+    with open(csv_file_path, mode='w', newline='', encoding='utf-8-sig') as csv_file:
         writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
 
         # 写入表头
@@ -142,4 +146,5 @@ def single_segment_gpx_file_path_to_csv(gpx_file_path: str, csv_file_path: str, 
 if __name__ == '__main__':
     gdf_list = load_area_gdf_list(r"asset\area_geojson")
     conn = sqlite3.connect(r"asset\area_code.sqlite")
-    single_segment_gpx_file_path_to_csv('test/20250226132250.gpx', 'test/20250226132250-2.csv', gdf_list, conn)
+    single_segment_gpx_file_path_to_csv(r"E:\project\recorded\route\gcj\20250406101913.gpx", r"E:\project\recorded\route\gcj\20250406101913.csv", gdf_list, conn)
+    single_segment_gpx_file_path_to_csv(r"E:\project\recorded\route\gcj\20250406152146.gpx", r"E:\project\recorded\route\gcj\20250406152146.csv", gdf_list, conn)

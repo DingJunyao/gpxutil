@@ -1,5 +1,6 @@
 import csv
 import io
+import math
 import os
 import string
 from datetime import datetime
@@ -130,17 +131,28 @@ def generate_pic(
             image.paste(resized_img, (road_sign_offset, road_xy[1] - resized_img.size[1] // 2))
             road_sign_offset += new_road_sign_wigth + road_sign_space
         road_sign_offset = road_sign_offset - road_sign_space + road_sign_char_space
+    road_zh_right_x = 0
+    road_en_right_x = 0
     if road_zh:
         draw_table.text(xy=(road_sign_offset, road_chinese_y), text=road_zh, fill=font_color, font=big_font)
+        # 获取中文字符宽度，后续判断是否移动指南针位置
+        road_zh_width = draw_table.textlength(text=road_zh, font=big_font)
+        road_zh_right_x = road_sign_offset + road_zh_width
     if road_en:
         draw_table.text(xy=(road_sign_offset, road_english_y), text=road_en, fill=font_color, font=small_font)
+        road_en_width = draw_table.textlength(text=road_en, font=small_font)
+        road_en_right_x = road_sign_offset + road_en_width
+    
+    compass_final_xy = compass_xy
+    if road_zh_right_x + road_sign_char_space > compass_xy[0] or road_en_right_x + road_sign_char_space > compass_xy[0]:
+        compass_final_xy = (math.ceil(max(road_zh_right_x, road_en_right_x) + road_sign_char_space), compass_xy[1])
     
     # 指南针
     if compass_angle is not None:
         compass_image = svg_to_img(compass_img_path)
         # 表示的是在当前方向上的正北（当前方向恒定为上），故不要加负号
         compass_image = compass_image.rotate(compass_angle, expand=False)
-        image.paste(compass_image, compass_xy)
+        image.paste(compass_image, compass_final_xy)
     
     # 已走 / 剩余
     if used_route is not None or used_time is not None or remain_route is not None or remain_time is not None:
@@ -188,7 +200,7 @@ def generate_pic(
 
 def read_csv(path: str) -> List[dict]:
     dict_list = []
-    with open(path, mode='r', newline='', encoding='gbk') as csv_file:
+    with open(path, mode='r', newline='', encoding='utf-8-sig') as csv_file:
         reader = csv.DictReader(csv_file)
         for row in tqdm(reader, desc='Processing csv data', unit='point(s)'):
             dict_list.append(row)
@@ -202,7 +214,7 @@ def read_csv(path: str) -> List[dict]:
                         '%Y/%m/%d %H:%M:%S'
                     )
                 elif key == 'elapsed_time':
-                    row[key] = int(value)
+                    row[key] = int(float(value))
                 elif key in ['latitude', 'longitude', 'elevation', 'distance', 'course', 'speed']:
                     row[key] = float(value)
                 else:
@@ -262,6 +274,7 @@ def read_csv_with_additional_info(
     """
     global road_num_svg_cache
     dict_list = read_csv(path)[start_index:end_index]
+    # TODO 缺失帧填充可能有问题。设置 start_index_after_fill 后，末尾计算剩余时间和路程有误
     dict_list = fill_missing_entries(dict_list)[start_index_after_fill:end_index_after_fill]
     new_dict_list = []
     total_time = dict_list[-1]['elapsed_time'] - dict_list[0]['elapsed_time']
@@ -272,7 +285,7 @@ def read_csv_with_additional_info(
         if int(row['index']) < crop_start or int(row['index']) > crop_end:
             continue
         row['real_index'] = i
-        row['elapsed_time'] = row['elapsed_time'] - dict_list[0]['elapsed_time'] if row['elapsed_time'] is not None else None
+        row['elapsed_time'] = row['elapsed_time'] - dict_list[0]['elapsed_time'] - start_index_after_fill if row['elapsed_time'] is not None else None
         row['distance'] = row['distance'] - dict_list[0]['distance'] if row['distance'] is not None else None
         row['remain_time'] = total_time - row['elapsed_time'] if row['elapsed_time'] is not None else None
         row['remain_distance'] = total_distance - row['distance'] if row['distance'] is not None else None
@@ -303,11 +316,12 @@ def read_csv_with_additional_info(
         new_dict_list.append(row)
     return new_dict_list
 
-def generate_pic_from_processed_dict_list(dict_list: List[dict], crop_start = 0):
+def generate_pic_from_processed_dict_list(dict_list: List[dict], crop_start = 0, out_dir: str = 'out/test'):
     """
     通过调整后的字典列表生成图片
     :param dict_list: 字典列表
     :param crop_start: 裁剪开始。注意：这里看的是 real_index 键的值
+    :param out_dir: 输出目录。末尾不带斜杠
     :return:
     """
     for i, row in tqdm(enumerate(dict_list), total=len(dict_list), desc='Generating pic', unit='point(s)'):
@@ -322,13 +336,25 @@ def generate_pic_from_processed_dict_list(dict_list: List[dict], crop_start = 0)
             altitude=row['elevation'], speed=row['speed']
         )
         # img.show()
-        img.save('out/test/pic_{:0>8d}.png'.format(row['real_index']), 'PNG')
+        img.save('{}/pic_{:0>8d}.png'.format(out_dir, row['real_index']), 'PNG')
         img.close()
     # return img_list
 
-def generate_pic_from_csv(path: str, start_index = 0, end_index = -1, start_index_after_fill = 0, end_index_after_fill = -1, crop_start = 0, crop_end = -1):
+def generate_pic_from_csv(path: str, start_index = 0, end_index = -1, start_index_after_fill = 0, end_index_after_fill = -1, crop_start = 0, crop_end = -1, out_dir: str = 'out/test'):
+    """
+    从 CSV 文件中生成图片
+    :param path: CSV 文件路径
+    :param start_index: 开始的序号
+    :param end_index: 结束的序号
+    :param start_index_after_fill: 填补缺失帧之后的开始的序号（用于与视频对齐，填写秒数）
+    :param end_index_after_fill: 填补缺失帧之后的结束的序号（用于与视频对齐，填写秒数）
+    :param crop_start 输出帧的序号起始，用于修改特定范围内的帧
+    :param crop_end 输出帧的序号结束，用于修改特定范围内的帧
+    :param out_dir: 输出目录。末尾不带斜杠
+    :return: None
+    """
     dict_list = read_csv_with_additional_info(path, start_index, end_index, start_index_after_fill, end_index_after_fill, crop_start, crop_end)
-    generate_pic_from_processed_dict_list(dict_list, crop_start)
+    generate_pic_from_processed_dict_list(dict_list, crop_start, out_dir)
 
 # def generate_video_from_pics(from_path: str, gen_path: str):
 #     imglist = []
