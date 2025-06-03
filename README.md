@@ -9,6 +9,7 @@
 - `gpx2csv.py`：读取 GPX 文件，导出为 CSV 文件
 - `svg_gen.py`：生成道路编号标志
 - `create_pic.py`：根据修改后的 CSV 文件，生成信息图的每一帧
+- `gen_road_info.py`：根据修改后的 CSV 文件，生成经由区域与道路的时间线。
 
 ## `gpx2csv.py`
 
