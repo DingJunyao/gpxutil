@@ -116,11 +116,67 @@ pic_list = generate_pic_from_csv('CSV 文件路径', start_index_after_fill=0, e
 
 1. `start_index`：输出帧的索引起始。对应 CSV 文件的 `index` 列。
 2. `end_index`：输出帧的索引结束。对应 CSV 文件的 `index` 列。
-1. `start_index_after_fill`：填补缺失帧之后的开始的序号（用于与视频对齐，填写秒数）
-2. `end_index_after_fill`：填补缺失帧之后的结束的序号（用于与视频对齐，填写秒数）
-3. `crop_start`：输出帧的序号起始，用于修改特定范围内的帧。对应 CSV 文件的 `index` 列。
-4. `crop_end`：输出帧的序号结束，用于修改特定范围内的帧。对应 CSV 文件的 `index` 列。
+3. `start_index_after_fill`：填补缺失帧之后的开始的序号（用于与视频对齐，填写秒数）
+4. `end_index_after_fill`：填补缺失帧之后的结束的序号（用于与视频对齐，填写秒数）
+5. `crop_start`：输出帧的序号起始，用于修改特定范围内的帧。对应 CSV 文件的 `index` 列。
+6. `crop_end`：输出帧的序号结束，用于修改特定范围内的帧。对应 CSV 文件的 `index` 列。
 
 运行前需参考[文档](https://cairosvg.org/documentation/#installation)解决 `Cairo` 依赖问题。
 
-读取的 CSV 文件应为 GBK 编码（因为经过修改后，很多情况下都存为这个编码的）。
+读取的 CSV 文件应为 UTF-8 带 BOM 编码（Excel 输出的 UTF-8 格式 CSV 是带 BOM 的）。
+
+## `gen_road_info.py`
+
+根据修改后的 CSV 文件，生成经由区域与道路的时间线。为方便自己写博客而编写。
+
+```python
+from gen_road_info import *
+
+csv_dict_list = read_csv('CSV 文件路径')
+city_info_list = get_info(csv_dict_list)
+print(gen_route_info(city_info_list))
+```
+
+输出结果如下：
+
+```text
+{% timeline  江西省 九江市（视频 XX:XX） %}
+
+<!-- timeline 浔阳区（视频 XX:XX） -->
+滨江路 → 龙开河路 → 北径路 → 三马路 → {% label G351 red %} 浔阳西路 → 三马路 → 北径路 → 龙开河路 → 滨江路 → 滨江东路…
+<!-- endtimeline -->
+<!-- timeline 濂溪区（视频 XX:XX） -->
+…滨江东路 → {% label S306 orange %} 滨江东路 → {% label S306 orange %} 九湖路 → {% label S306 orange %}  → {% label S306 orange %} 梅家洲渡口 → {% label S306 orange %}  → {% label S306 orange %} 九湖路 → {% label S306 orange %} 滨江东路 → 洪垅大道 → {% label X175 white %} 洪垅大道 → {% label S306 orange %} / {% label X175 white %} 九湖路 → 芳兰大道 → 九湖路 → {% label X175 white %} 九湖路 → {% label G351 red %} / {% label X175 white %} 九湖路…
+<!-- endtimeline -->
+<!-- timeline 浔阳区（视频 XX:XX） -->
+…{% label G351 red %} / {% label X175 white %} 九湖路…
+<!-- endtimeline -->
+<!-- timeline 濂溪区（视频 XX:XX） -->
+…{% label G351 red %} / {% label X175 white %} 九湖路 → 琴湖大道 → 琴湖大道互通 → 昌九快速路 → 九江东收费站 → 赣 {% label S22 green %} 都九高速…
+<!-- endtimeline -->
+<!-- timeline 湖口县（视频 XX:XX） -->
+…赣 {% label S22 green %} 都九高速 → 石钟山服务区 → 赣 {% label S22 green %} 都九高速…
+<!-- endtimeline -->
+<!-- timeline 都昌县（视频 XX:XX） -->
+…赣 {% label S22 green %} 都九高速 → {% label G56 green %} / 赣 {% label S22 green %} 杭瑞高速 → {% label G56 green %} 杭瑞高速…
+<!-- endtimeline -->
+{% endtimeline %}
+{% timeline  江西省 上饶市（视频 XX:XX） %}
+
+<!-- timeline 鄱阳县（视频 XX:XX） -->
+…{% label G56 green %} 杭瑞高速…
+<!-- endtimeline -->
+{% endtimeline %}
+{% timeline  江西省 景德镇市（视频 XX:XX） %}
+
+<!-- timeline 浮梁县（视频 XX:XX） -->
+…{% label G56 green %} 杭瑞高速 → 景德镇西互通（景德镇西收费站） → 迎宾大道…
+<!-- endtimeline -->
+<!-- timeline 昌江区（视频 XX:XX） -->
+…迎宾大道 → {% label G351 red %} 迎宾大道 → 新平路 → 珠山大道 → {% label S308 orange %} 珠山大道…
+<!-- endtimeline -->
+<!-- timeline 珠山区（视频 XX:XX） -->
+…{% label S308 orange %} 珠山大道 → 中华南路 → 麻石上弄 → 中山南路 → 麻石上弄 → 中华南路 → {% label S308 orange %} 珠山大道 → 莲社南路
+<!-- endtimeline -->
+{% endtimeline %}
+```
