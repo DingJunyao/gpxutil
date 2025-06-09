@@ -293,8 +293,10 @@ def read_csv_with_additional_info(
         row['speed'] = row['speed'] * 3.6 if row['speed'] is not None else None
         row['distance'] = row['distance'] / 1000 if row['distance'] is not None else None
         row['remain_distance'] = row['remain_distance'] / 1000 if row['remain_distance'] is not None else None
-        row['full_area'] = f"{row['province']} {row['city']} {row['area']}"
-        row['full_area_en'] = f"{row['area_en']}, {row['city_en']}, {row['province_en']}"
+        # 区域信息如无，则不显示
+        row['full_area'] = ' '.join([i for i in [row['province'], row['city'], row['area']] if i])
+        row['full_area_en'] = ', '.join([i for i in [row['area_en'], row['city_en'], row['province_en']] if i])
+        
         row['road_sign_svg'] = []
         if 'road_num' in row and row['road_num']:
             road_sign_num_list = row['road_num'].split(',')

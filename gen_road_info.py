@@ -176,9 +176,9 @@ def gen_single_road_info(road: RoadInfo):
     return ' / '.join([gen_single_road_code(code) for code in road.code]) + (" " if road.code else "") + (road.name if road.name else "")
 
 def merge_itrchg_and_toll_station(in_list):
-    """处理立交和收费站的合并事宜。列表中如果有“互通”“立交”“枢纽”和“收费站”结尾的项目相连，则合并为 “XX互通/立交/枢纽（XXX收费站）
+    """处理立交和收费站的合并事宜。列表中如果有“互通”“立交”“枢纽”“入口”“出口”和“收费站”结尾的项目相连，则合并为 “XX互通/立交/枢纽（XXX收费站）
     """
-    hint_words = ["互通", "立交", "枢纽"]  # 指示词后缀
+    hint_words = ["互通", "立交", "枢纽", "入口", "出口"]  # 指示词后缀
     toll_suffix = "收费站"  # 收费站后缀
     result = []  # 存储处理结果
     i = 0  # 列表索引
