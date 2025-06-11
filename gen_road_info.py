@@ -124,10 +124,10 @@ def get_info(csv_dict_list: list[dict]):
     city_info_list: list[CityInfo] = []
     for csv_dict in tqdm(csv_dict_list, desc='Getting area info', unit='point(s)'):
         city_info = CityInfo(
-            province=csv_dict['province'],
-            city=csv_dict['city'],
+            province=csv_dict['province'] if csv_dict['province'] else '',
+            city=csv_dict['city'] if csv_dict['city'] else '',
             areas=[AreaInfo(
-                name=csv_dict['area'],
+                name=csv_dict['area'] if csv_dict['area'] else '',
                 roads=[RoadInfo(
                     code=csv_dict['road_num'].split(',') if csv_dict['road_num'] else [],
                     name=csv_dict['road_name'],
