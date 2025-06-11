@@ -274,7 +274,6 @@ def read_csv_with_additional_info(
     """
     global road_num_svg_cache
     dict_list = read_csv(path)[start_index:end_index]
-    # TODO 缺失帧填充可能有问题。设置 start_index_after_fill 后，末尾计算剩余时间和路程有误
     dict_list = fill_missing_entries(dict_list)[start_index_after_fill:end_index_after_fill]
     new_dict_list = []
     total_time = dict_list[-1]['elapsed_time'] - dict_list[0]['elapsed_time']
@@ -282,27 +281,28 @@ def read_csv_with_additional_info(
     if crop_end < 0:
         crop_end += len(dict_list)
     for i, row in tqdm(enumerate(dict_list), total=len(dict_list), desc='Processing dict', unit='point(s)'):
+        new_row = row.copy()
         if int(row['index']) < crop_start or int(row['index']) > crop_end:
             continue
-        row['real_index'] = i
-        row['elapsed_time'] = row['elapsed_time'] - dict_list[0]['elapsed_time'] - start_index_after_fill if row['elapsed_time'] is not None else None
-        row['distance'] = row['distance'] - dict_list[0]['distance'] if row['distance'] is not None else None
-        row['remain_time'] = total_time - row['elapsed_time'] if row['elapsed_time'] is not None else None
-        row['remain_distance'] = total_distance - row['distance'] if row['distance'] is not None else None
+        new_row['real_index'] = i
+        new_row['elapsed_time'] = row['elapsed_time'] - dict_list[0]['elapsed_time'] - start_index_after_fill if row['elapsed_time'] is not None else None
+        new_row['distance'] = row['distance'] - dict_list[0]['distance'] if row['distance'] is not None else None
+        new_row['remain_time'] = total_time - new_row['elapsed_time'] if new_row['elapsed_time'] is not None else None
+        new_row['remain_distance'] = total_distance - new_row['distance'] if new_row['distance'] is not None else None
         # 单位调整
-        row['speed'] = row['speed'] * 3.6 if row['speed'] is not None else None
-        row['distance'] = row['distance'] / 1000 if row['distance'] is not None else None
-        row['remain_distance'] = row['remain_distance'] / 1000 if row['remain_distance'] is not None else None
+        new_row['speed'] = new_row['speed'] * 3.6 if new_row['speed'] is not None else None
+        new_row['distance'] = new_row['distance'] / 1000 if new_row['distance'] is not None else None
+        new_row['remain_distance'] = new_row['remain_distance'] / 1000 if new_row['remain_distance'] is not None else None
         # 区域信息如无，则不显示
-        row['full_area'] = ' '.join([i for i in [row['province'], row['city'], row['area']] if i])
-        row['full_area_en'] = ', '.join([i for i in [row['area_en'], row['city_en'], row['province_en']] if i])
+        new_row['full_area'] = ' '.join([i for i in [row['province'], row['city'], row['area']] if i])
+        new_row['full_area_en'] = ', '.join([i for i in [row['area_en'], row['city_en'], row['province_en']] if i])
         
-        row['road_sign_svg'] = []
+        new_row['road_sign_svg'] = []
         if 'road_num' in row and row['road_num']:
             road_sign_num_list = row['road_num'].split(',')
             for road_sign in road_sign_num_list:
                 if road_sign in road_num_svg_cache:
-                    row['road_sign_svg'].append(road_num_svg_cache[road_sign])
+                    new_row['road_sign_svg'].append(road_num_svg_cache[road_sign])
                     continue
                 # 第一位为大写字母，则为国道、省道等普通道路，或者是国家高速
                 if road_sign[0] in string.ascii_uppercase:
@@ -314,22 +314,48 @@ def read_csv_with_additional_info(
                 else:
                     svg_drawing = generate_expwy_pad(road_sign[1:], province=road_sign[0])
                 road_num_svg_cache[road_sign] = svg_drawing
-                row['road_sign_svg'].append(svg_drawing)
-        new_dict_list.append(row)
+                new_row['road_sign_svg'].append(svg_drawing)
+        new_dict_list.append(new_row)
     return new_dict_list
 
-def generate_pic_from_processed_dict_list(dict_list: List[dict], crop_start = 0, out_dir: str = 'out/test'):
+# def generate_pic_from_processed_dict_list(dict_list: List[dict], crop_start = 0, out_dir: str = 'out/test'):
+#     """
+#     通过调整后的字典列表生成图片
+#     :param dict_list: 字典列表
+#     :param crop_start: 裁剪开始。注意：这里看的是 real_index 键的值
+#     :param out_dir: 输出目录。末尾不带斜杠
+#     :return:
+#     """
+#     for i, row in tqdm(enumerate(dict_list), total=len(dict_list), desc='Generating pic', unit='point(s)'):
+#         img = generate_pic(
+#             area_zh=row['full_area'], area_en=row['full_area_en'],
+#             # road_sign_list=[generate_way_num_pad('G310')],
+#             road_sign_list=row['road_sign_svg'],
+#             road_zh=row['road_name'], road_en=row['road_name_en'],
+#             compass_angle=row['course'],
+#             used_route=row['distance'], used_time=row['elapsed_time'],
+#             remain_route=row['remain_distance'], remain_time=row['remain_time'],
+#             altitude=row['elevation'], speed=row['speed']
+#         )
+#         # img.show()
+#         img.save('{}/pic_{:0>8d}.png'.format(out_dir, row['real_index']), 'PNG')
+#         img.close()
+#     # return img_list
+
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+def generate_pic_from_processed_dict_list(dict_list: List[dict], crop_start=0, out_dir: str = 'out/test', max_workers=4):
     """
-    通过调整后的字典列表生成图片
+    通过调整后的字典列表生成图片（多线程版本）
     :param dict_list: 字典列表
     :param crop_start: 裁剪开始。注意：这里看的是 real_index 键的值
     :param out_dir: 输出目录。末尾不带斜杠
+    :param max_workers: 最大线程数
     :return:
     """
-    for i, row in tqdm(enumerate(dict_list), total=len(dict_list), desc='Generating pic', unit='point(s)'):
+    def process_row(i, row):
         img = generate_pic(
             area_zh=row['full_area'], area_en=row['full_area_en'],
-            # road_sign_list=[generate_way_num_pad('G310')],
             road_sign_list=row['road_sign_svg'],
             road_zh=row['road_name'], road_en=row['road_name_en'],
             compass_angle=row['course'],
@@ -337,10 +363,13 @@ def generate_pic_from_processed_dict_list(dict_list: List[dict], crop_start = 0,
             remain_route=row['remain_distance'], remain_time=row['remain_time'],
             altitude=row['elevation'], speed=row['speed']
         )
-        # img.show()
-        img.save('{}/pic_{:0>8d}.png'.format(out_dir, row['real_index']), 'PNG')
+        img.save(f'{out_dir}/pic_{row["real_index"]:08d}.png', 'PNG')
         img.close()
-    # return img_list
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(process_row, i, row) for i, row in enumerate(dict_list)]
+        for future in tqdm(as_completed(futures), total=len(futures), desc='Generating pic', unit='point(s)'):
+            pass
 
 def generate_pic_from_csv(path: str, start_index = 0, end_index = -1, start_index_after_fill = 0, end_index_after_fill = -1, crop_start = 0, crop_end = -1, out_dir: str = 'out/test'):
     """
