@@ -6,6 +6,8 @@ import gpxpy.gpx
 from geopandas import GeoDataFrame
 from shapely import Point
 
+from src.gpxutil.models.exceptions import PointAreaNotFoundException
+
 
 def calculate_bearing(point1: gpxpy.gpx.GPXTrackPoint, point2: gpxpy.gpx.GPXTrackPoint):
     """
@@ -40,7 +42,7 @@ def get_area_id(point: Point, area_gdf_list: List[GeoDataFrame]) -> str:
             if polygon.contains(point):  # 判断点是否在多边形内
                 # print(f"点 ({point.x}, {point.y}) 在区域 {row['id']} 中，区域名称为 {row['name']}")
                 return row['id']
-    raise ValueError(f"点 ({point.x}, {point.y}) 不在任何已知区域内")
+    raise PointAreaNotFoundException(f"点 ({point.x}, {point.y}) 不在任何已知区域内")
 
 
 def get_area_info(point: Point, area_gdf_list: List[GeoDataFrame], area_code_conn: sqlite3.Connection):
@@ -52,7 +54,10 @@ def get_area_info(point: Point, area_gdf_list: List[GeoDataFrame], area_code_con
     :return: 省级、市级、县级行政区划名称
     """
     cursor = area_code_conn.cursor()
-    area_id = get_area_id(point, area_gdf_list)
+    try:
+        area_id = get_area_id(point, area_gdf_list)
+    except PointAreaNotFoundException:
+        return None, None, None
     sql = """
     select province.name, city.name, area.name
     from province, city, area

@@ -13,19 +13,19 @@ class PositionRightTopConfig:
     right_x: float
     y: float
 
-@dataclass
-class SizeConfig:
-    """记录宽高"""
-    width: float
-    height: float
+# @dataclass
+# class SizeConfig:
+#     """记录宽高"""
+#     width: float
+#     height: float
 
-class BoxConfig(PositionConfig, SizeConfig):
-    """Position and size of a box (e.g. Picture, Text)"""
-    def __init__(self, x: float, y: float, width: float, height: float):
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
+# class BoxConfig(PositionConfig, SizeConfig):
+#     """Position and size of a box (e.g. Picture, Text)"""
+#     def __init__(self, x: float, y: float, width: float, height: float):
+#         self.x = x
+#         self.y = y
+#         self.width = width
+#         self.height = height
 
 @dataclass
 class ColorConfig:
@@ -41,56 +41,56 @@ class FontPathConfig:
     B: str
     C: str
 
-@dataclass
-class WayNumPadColorSingleConfig:
-    national: str
-    province: str
-    other: str
+# @dataclass
+# class WayNumPadColorSingleConfig:
+#     national: str
+#     province: str
+#     other: str
 
-@dataclass
-class WayNumPadColorConfig:
-    background: WayNumPadColorSingleConfig
-    stroke: WayNumPadColorSingleConfig
+# @dataclass
+# class WayNumPadColorConfig:
+#     background: WayNumPadColorSingleConfig
+#     stroke: WayNumPadColorSingleConfig
 
 @dataclass
 class WayNumPadConfig:
     template_path: str
-    width: int
-    height: int
-    word: BoxConfig
-    color: WayNumPadColorConfig
+    # width: int
+    # height: int
+    # word: BoxConfig
+    # color: WayNumPadColorConfig
 
-@dataclass
-class ExpwyCodeSignBannerBackgroundColorConfig:
-    national: str
-    province: str
+# @dataclass
+# class ExpwyCodeSignBannerBackgroundColorConfig:
+#     national: str
+#     province: str
 
-@dataclass
-class ExpwyCodeSignColorConfig:
-    banner: ExpwyCodeSignBannerBackgroundColorConfig
-    main: str
+# @dataclass
+# class ExpwyCodeSignColorConfig:
+#     banner: ExpwyCodeSignBannerBackgroundColorConfig
+#     main: str
 
-@dataclass
-class ExpwyCodeSignBannerTextConfig:
-    national: BoxConfig
-    province: BoxConfig
+# @dataclass
+# class ExpwyCodeSignBannerTextConfig:
+#     national: BoxConfig
+#     province: BoxConfig
 
-@dataclass
-class ExpwyCodeSignNum4CodeConfig:
-    big: BoxConfig
-    small: BoxConfig
+# @dataclass
+# class ExpwyCodeSignNum4CodeConfig:
+#     big: BoxConfig
+#     small: BoxConfig
 
 @dataclass
 class ExpwyCodeSignWithoutNameNum1And2Config:
-    template: str
-    code: BoxConfig
-    banner_text: ExpwyCodeSignBannerTextConfig
+    template_path: str
+    # code: BoxConfig
+    # banner_text: ExpwyCodeSignBannerTextConfig
 
 @dataclass
 class ExpwyCodeSignWithoutNameNum4Config:
-    template: str
-    code: ExpwyCodeSignNum4CodeConfig
-    banner_text: ExpwyCodeSignBannerTextConfig
+    template_path: str
+    # code: ExpwyCodeSignNum4CodeConfig
+    # banner_text: ExpwyCodeSignBannerTextConfig
 
 @dataclass
 class ExpwyCodeSignWithoutNameConfig:
@@ -100,17 +100,17 @@ class ExpwyCodeSignWithoutNameConfig:
 
 @dataclass
 class ExpwyCodeSignWithNameNum1And2Config:
-    template: str
-    code: BoxConfig
-    name: BoxConfig
-    banner_text: ExpwyCodeSignBannerTextConfig
+    template_path: str
+    # code: BoxConfig
+    # name: BoxConfig
+    # banner_text: ExpwyCodeSignBannerTextConfig
 
 @dataclass
 class ExpwyCodeSignWithNameNum4Config:
-    template: str
-    code: ExpwyCodeSignNum4CodeConfig
-    name: BoxConfig
-    banner_text: ExpwyCodeSignBannerTextConfig
+    template_path: str
+    # code: ExpwyCodeSignNum4CodeConfig
+    # name: BoxConfig
+    # banner_text: ExpwyCodeSignBannerTextConfig
 
 @dataclass
 class ExpwyCodeSignWithNameConfig:
@@ -120,7 +120,7 @@ class ExpwyCodeSignWithNameConfig:
 
 @dataclass
 class ExpwyCodeSignConfig:
-    color: ExpwyCodeSignColorConfig
+    # color: ExpwyCodeSignColorConfig
     without_name: ExpwyCodeSignWithoutNameConfig
     with_name: ExpwyCodeSignWithNameConfig
 
@@ -197,6 +197,7 @@ class VideoInfoLayerFrameConfig:
     width: int
     height: int
     dpi: int
+    min_space: int
     area: VideoInfoLayerAreaConfig
     road: VideoInfoLayerRoadConfig
     compass: PositionConfig
@@ -218,4 +219,5 @@ class Config:
 
 
 if __name__ == '__main__':
-    BoxConfig(1,2,3,4)
+    # BoxConfig(1,2,3,4)
+    pass

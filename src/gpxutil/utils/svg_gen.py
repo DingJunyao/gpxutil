@@ -9,6 +9,8 @@ from svgpathtools.path import Path
 from fontTools.ttLib import TTFont
 from fontTools.pens.svgPathPen import SVGPathPen
 
+from src.gpxutil.core.config import CONFIG_HANDLER
+
 # Brown  -- Panose 469 -- RGB 97,54,29  61361D
 # Green  -- Panose 342 -- RGB 0,110,85  006E55
 # Red    -- Panose 187 -- RGB 181,39,60 B5273C
@@ -23,11 +25,22 @@ from fontTools.pens.svgPathPen import SVGPathPen
 # Yellow -- CMYK 0/0/100/0   -- RGB 255,242,0   FFF200
 # Orange -- CMYK 0/51/87/0   -- RGB 247,146,51  F79233
 
-RED = '#B5273C'
-WHITE = '#FFFFFF'
-YELLOW = '#FFCD00'
-BLACK = '#000000'
-GREEN = '#006E55'
+# 此部分应该从配置文件中读取
+RED = ''
+WHITE = ''
+YELLOW = ''
+BLACK = ''
+GREEN = ''
+EXPWY_TEMPLATE_DICT = {
+    '1': '',
+    '2': '',
+    '4': '',
+    '1_name': '',
+    '2_name': '',
+    '4_name': '',
+}
+
+# 此部分按照模板和国标硬编码
 WAY_NUM_PAD_WIDTH = 400
 WAY_NUM_PAD_HEIGHT = 200
 WAY_NUM_PAD_WORD_START_X = 50
@@ -35,25 +48,7 @@ WAY_NUM_PAD_WORD_START_Y = 50
 WAY_NUM_PAD_WORD_WIDTH = 300
 WAY_NUM_PAD_WORD_HEIGHT = 100
 
-WAY_NUM_PAD_TEMPLATE = 'asset/template/way_num.svg'
-# FONT_TYPE_DIRECTORY_DICT = {
-#     'A': 'asset/source_han_sans_cn_bold',
-#     'B': 'asset/jtbz_b',
-#     'C': 'asset/jtbz_c'
-# }
-FONT_TYPE_DIRECTORY_DICT = {
-    'A': 'asset/font/SourceHanSansSC-Bold.otf',
-    'B': 'asset/font/jtbz_B.ttf',
-    'C': 'asset/font/jtbz_C.ttf'
-}
-EXPWY_TEMPLATE_DICT = {
-    '1': 'asset/template/expwy_1.svg',
-    '2': 'asset/template/expwy_2.svg',
-    '4': 'asset/template/expwy_4.svg',
-    '1_name': 'asset/template/expwy_1_name.svg',
-    '2_name': 'asset/template/expwy_2_name.svg',
-    '4_name': 'asset/template/expwy_4_name.svg',
-}
+
 EXPWY_CODE_START_X_DICT = {
     '1': 150,
     '2': 90,
@@ -87,18 +82,6 @@ EXPWY_NAME_WIDTH_DICT = {
 }
 EXPWY_NAME_HEIGHT = 200
 
-# EXPWY_BANNER_TEXT_START_X_DICT = {
-#     1: 250,
-#     2: 359.1,
-#     4: 600
-# }
-# EXPWY_BANNER_TEXT_START_Y_DICT = {
-#     'without_name': 80,
-#     'with_name': 110,
-# }
-# EXPWY_BANNER_TEXT_WIDTH = 100
-# EXPWY_BANNER_TEXT_HEIGHT = 100
-
 EXPWY_BANNER_TEXT_START_X_DICT = {
     'national_1': 150,
     'national_2': 275,
@@ -110,7 +93,7 @@ EXPWY_BANNER_TEXT_START_Y_DICT = {
     'without_name': 80,
     'with_name': 110,
 }
-# EXPWY_BANNER_TEXT_WIDTH = 95.7212
+
 EXPWY_BANNER_TEXT_WIDTH_DICT = {
     'national_1_2': 700,
     '4': 990,
@@ -118,6 +101,26 @@ EXPWY_BANNER_TEXT_WIDTH_DICT = {
 }
 EXPWY_BANNER_TEXT_HEIGHT = 100
 
+
+def set_const():
+    """
+    读配置，写入对应的变量，供使用。应该在使用它们的函数最开始执行。
+    :return: None
+    """
+    global RED, WHITE, YELLOW, BLACK, GREEN, EXPWY_TEMPLATE_DICT
+    RED = CONFIG_HANDLER.config.traffic_sign.color.red
+    WHITE = CONFIG_HANDLER.config.traffic_sign.color.white
+    YELLOW = CONFIG_HANDLER.config.traffic_sign.color.yellow
+    BLACK = CONFIG_HANDLER.config.traffic_sign.color.black
+    GREEN = CONFIG_HANDLER.config.traffic_sign.color.green
+    EXPWY_TEMPLATE_DICT = {
+        '1': CONFIG_HANDLER.config.traffic_sign.expwy_code_sign.without_name.num_1.template_path,
+        '2': CONFIG_HANDLER.config.traffic_sign.expwy_code_sign.without_name.num_2.template_path,
+        '4': CONFIG_HANDLER.config.traffic_sign.expwy_code_sign.without_name.num_4.template_path,
+        '1_name': CONFIG_HANDLER.config.traffic_sign.expwy_code_sign.with_name.num_1.template_path,
+        '2_name': CONFIG_HANDLER.config.traffic_sign.expwy_code_sign.with_name.num_2.template_path,
+        '4_name': CONFIG_HANDLER.config.traffic_sign.expwy_code_sign.with_name.num_4.template_path,
+    }
 
 def char_to_svg_path(font_path, char) -> Path:
     # 加载字体
@@ -214,6 +217,7 @@ def calculate_scaled_char_info(code: str, start_x: int | float, start_y: int | f
     return scaled_char_path_list
 
 def generate_way_num_pad(code: str):
+    set_const()
     match code[0]:
         case 'G':
             background_color = RED
@@ -226,9 +230,12 @@ def generate_way_num_pad(code: str):
             stroke_color = BLACK
 
 
-    paths, attributes = svg2paths(WAY_NUM_PAD_TEMPLATE)
+    paths, attributes = svg2paths(CONFIG_HANDLER.config.traffic_sign.way_num_pad.template_path)
 
-    scaled_char_path_list = calculate_scaled_char_info(code, WAY_NUM_PAD_WORD_START_X, WAY_NUM_PAD_WORD_START_Y, WAY_NUM_PAD_WORD_WIDTH, WAY_NUM_PAD_WORD_HEIGHT, FONT_TYPE_DIRECTORY_DICT['B'])
+    scaled_char_path_list = calculate_scaled_char_info(
+        code, WAY_NUM_PAD_WORD_START_X, WAY_NUM_PAD_WORD_START_Y, WAY_NUM_PAD_WORD_WIDTH, WAY_NUM_PAD_WORD_HEIGHT,
+        CONFIG_HANDLER.config.traffic_sign.font_path.B
+    )
 
     dwg = svgwrite.Drawing('output.svg', size=(f'{WAY_NUM_PAD_WIDTH}', f'{WAY_NUM_PAD_HEIGHT}'))
     for path, attr in zip(paths, attributes):
@@ -260,6 +267,7 @@ def generate_way_num_pad_to_file(code: str, path: str):
     generate_way_num_pad(code).saveas(path)
 
 def generate_expwy_pad(code: str, province: str = None, name: str = None):
+    set_const()
     code_start_x_index: str = '2'
     code_start_y_index: str = 'big'
     code_width_index: str = '2_4_big'
@@ -348,29 +356,29 @@ def generate_expwy_pad(code: str, province: str = None, name: str = None):
         banner_text, EXPWY_BANNER_TEXT_START_X_DICT[banner_text_start_x_index],
         EXPWY_BANNER_TEXT_START_Y_DICT[banner_text_start_y_index],
         EXPWY_BANNER_TEXT_WIDTH_DICT[banner_text_width_index], EXPWY_BANNER_TEXT_HEIGHT,
-        FONT_TYPE_DIRECTORY_DICT['A']
+        CONFIG_HANDLER.config.traffic_sign.font_path.A
     )
 
     scaled_big_code_char_path_list = calculate_scaled_char_info(
         big_code, EXPWY_CODE_START_X_DICT[code_start_x_index], EXPWY_CODE_START_Y_DICT[code_start_y_index],
         EXPWY_CODE_WIDTH_DICT[code_width_index], EXPWY_CODE_HEIGHT_DICT[code_height_index],
-        FONT_TYPE_DIRECTORY_DICT['B']
+        CONFIG_HANDLER.config.traffic_sign.font_path.B
     )
     if small_code:
         scaled_small_code_char_path_list = calculate_scaled_char_info(
             small_code, EXPWY_CODE_START_X_DICT[small_code_start_x_index],
             EXPWY_CODE_START_Y_DICT[small_code_start_y_index], EXPWY_CODE_WIDTH_DICT[small_code_width_index],
-            EXPWY_CODE_HEIGHT_DICT[small_code_height_index], FONT_TYPE_DIRECTORY_DICT['C']
+            EXPWY_CODE_HEIGHT_DICT[small_code_height_index], CONFIG_HANDLER.config.traffic_sign.font_path.C
         )
     if name:
         scaled_name_char_path_list = calculate_scaled_char_info(
             name, EXPWY_NAME_START_X_DICT[name_start_x_index], EXPWY_NAME_START_Y, EXPWY_NAME_WIDTH_DICT[name_width_index],
-            EXPWY_NAME_HEIGHT, FONT_TYPE_DIRECTORY_DICT['A']
+            EXPWY_NAME_HEIGHT, CONFIG_HANDLER.config.traffic_sign.font_path.A
         )
 
     dwg = svgwrite.Drawing('output.svg', size=tuple([str(i) for i in get_svg_dimensions(EXPWY_TEMPLATE_DICT[template_index])]))
     for path, attr in zip(paths, attributes):
-        fill = '#ffffff'
+        fill = WHITE
         if 'class' in attr:
             if attr['class'] == 'background':
                 fill = background_color
@@ -399,22 +407,22 @@ def generate_expwy_pad_to_file(path: str, code: str, province: str = None, name:
 
 
 if __name__ == '__main__':
-    generate_way_num_pad_to_file('G221', '../../../out/G221.svg')
-    generate_way_num_pad_to_file('S221', '../../../out/S221.svg')
-    generate_way_num_pad_to_file('X221', '../../../out/X221.svg')
-    generate_expwy_pad_to_file('../../../out/expwy_01.svg', 'G5')
-    generate_expwy_pad_to_file('../../../out/expwy_02.svg', 'G45')
-    generate_expwy_pad_to_file('../../../out/expwy_03.svg', 'G4511')
-    generate_expwy_pad_to_file('../../../out/expwy_07.svg', 'S2', '豫')
-    generate_expwy_pad_to_file('../../../out/expwy_08.svg', 'S21', '豫')
-    generate_expwy_pad_to_file('../../../out/expwy_09.svg', 'S0211', '豫')
-    generate_expwy_pad_to_file('../../../out/expwy_04.svg', 'G5', name='测测高速')
-    generate_expwy_pad_to_file('../../../out/expwy_05.svg', 'G45', name='测试高速')
-    generate_expwy_pad_to_file('../../../out/expwy_06.svg', 'G4511', name='测试测试高速')
-    generate_expwy_pad_to_file('../../../out/expwy_10.svg', 'S2', '豫', name='测试省级')
-    generate_expwy_pad_to_file('../../../out/expwy_11.svg', 'S21', '豫', name='测试省高')
-    generate_expwy_pad_to_file('../../../out/expwy_12.svg', 'S0211', '豫', name='测试省级高速')
-    generate_way_num_pad_to_file('G318', '../../../out/G318.svg')
-    generate_expwy_pad_to_file('../../../out/expwy_G2503.svg', 'G2503', name='南京绕城高速')
-    generate_expwy_pad_to_file('../../../out/expwy_shanxi_S75.svg', 'S75', '晋')
+    generate_way_num_pad_to_file('G221', './out/G221.svg')
+    generate_way_num_pad_to_file('S221', './out/S221.svg')
+    generate_way_num_pad_to_file('X221', './out/X221.svg')
+    generate_expwy_pad_to_file('./out/expwy_01.svg', 'G5')
+    generate_expwy_pad_to_file('./out/expwy_02.svg', 'G45')
+    generate_expwy_pad_to_file('./out/expwy_03.svg', 'G4511')
+    generate_expwy_pad_to_file('./out/expwy_07.svg', 'S2', '豫')
+    generate_expwy_pad_to_file('./out/expwy_08.svg', 'S21', '豫')
+    generate_expwy_pad_to_file('./out/expwy_09.svg', 'S0211', '豫')
+    generate_expwy_pad_to_file('./out/expwy_04.svg', 'G5', name='测测高速')
+    generate_expwy_pad_to_file('./out/expwy_05.svg', 'G45', name='测试高速')
+    generate_expwy_pad_to_file('./out/expwy_06.svg', 'G4511', name='测试测试高速')
+    generate_expwy_pad_to_file('./out/expwy_10.svg', 'S2', '豫', name='测试省级')
+    generate_expwy_pad_to_file('./out/expwy_11.svg', 'S21', '豫', name='测试省高')
+    generate_expwy_pad_to_file('./out/expwy_12.svg', 'S0211', '豫', name='测试省级高速')
+    generate_way_num_pad_to_file('G318', './out/G318.svg')
+    generate_expwy_pad_to_file('./out/expwy_G2503.svg', 'G2503', name='南京绕城高速')
+    generate_expwy_pad_to_file('./out/expwy_shanxi_S75.svg', 'S75', '晋')
     generate_way_num_pad_to_file('G318', './out/G318-red.svg')

@@ -4,7 +4,7 @@ import yaml
 from src.gpxutil.models.config import *
 
 
-CONFIG_FILE_PATH = '../../../config/conf.yaml'
+CONFIG_FILE_PATH = 'config/conf.yaml'
 
 class ConfigHandler:
     _instance_lock = threading.Lock()
@@ -54,114 +54,114 @@ class ConfigHandler:
             C=config_raw['traffic_sign']['font_path']['C']
         )
 
-        word = BoxConfig(
-            x=config_raw['traffic_sign']['way_num_pad']['word']['x'],
-            y=config_raw['traffic_sign']['way_num_pad']['word']['y'],
-            width=config_raw['traffic_sign']['way_num_pad']['word']['width'],
-            height=config_raw['traffic_sign']['way_num_pad']['word']['height']
-        )
+        # word = BoxConfig(
+        #     x=config_raw['traffic_sign']['way_num_pad']['word']['x'],
+        #     y=config_raw['traffic_sign']['way_num_pad']['word']['y'],
+        #     width=config_raw['traffic_sign']['way_num_pad']['word']['width'],
+        #     height=config_raw['traffic_sign']['way_num_pad']['word']['height']
+        # )
 
-        way_num_pad_color_background = WayNumPadColorSingleConfig(
-            national=config_raw['traffic_sign']['way_num_pad']['color']['background']['national'],
-            province=config_raw['traffic_sign']['way_num_pad']['color']['background']['province'],
-            other=config_raw['traffic_sign']['way_num_pad']['color']['background']['other']
-        )
+        # way_num_pad_color_background = WayNumPadColorSingleConfig(
+        #     national=config_raw['traffic_sign']['way_num_pad']['color']['background']['national'],
+        #     province=config_raw['traffic_sign']['way_num_pad']['color']['background']['province'],
+        #     other=config_raw['traffic_sign']['way_num_pad']['color']['background']['other']
+        # )
 
-        way_num_pad_color_stroke = WayNumPadColorSingleConfig(
-            national=config_raw['traffic_sign']['way_num_pad']['color']['stroke']['national'],
-            province=config_raw['traffic_sign']['way_num_pad']['color']['stroke']['province'],
-            other=config_raw['traffic_sign']['way_num_pad']['color']['stroke']['other']
-        )
+        # way_num_pad_color_stroke = WayNumPadColorSingleConfig(
+        #     national=config_raw['traffic_sign']['way_num_pad']['color']['stroke']['national'],
+        #     province=config_raw['traffic_sign']['way_num_pad']['color']['stroke']['province'],
+        #     other=config_raw['traffic_sign']['way_num_pad']['color']['stroke']['other']
+        # )
 
-        way_num_pad_color = WayNumPadColorConfig(
-            background=way_num_pad_color_background,
-            stroke=way_num_pad_color_stroke
-        )
+        # way_num_pad_color = WayNumPadColorConfig(
+        #     background=way_num_pad_color_background,
+        #     stroke=way_num_pad_color_stroke
+        # )
 
         way_num_pad = WayNumPadConfig(
             template_path=config_raw['traffic_sign']['way_num_pad']['template_path'],
-            width=config_raw['traffic_sign']['way_num_pad']['width'],
-            height=config_raw['traffic_sign']['way_num_pad']['height'],
-            word=word,
-            color=way_num_pad_color
+            # width=config_raw['traffic_sign']['way_num_pad']['width'],
+            # height=config_raw['traffic_sign']['way_num_pad']['height'],
+            # word=word,
+            # color=way_num_pad_color
         )
 
-        expwy_code_sign_color_banner = ExpwyCodeSignBannerBackgroundColorConfig(
-            national=config_raw['traffic_sign']['expwy_code_sign']['color']['background']['banner']['national'],
-            province=config_raw['traffic_sign']['expwy_code_sign']['color']['background']['banner']['province']
-        )
+        # expwy_code_sign_color_banner = ExpwyCodeSignBannerBackgroundColorConfig(
+        #     national=config_raw['traffic_sign']['expwy_code_sign']['color']['background']['banner']['national'],
+        #     province=config_raw['traffic_sign']['expwy_code_sign']['color']['background']['banner']['province']
+        # )
 
-        expwy_code_sign_color = ExpwyCodeSignColorConfig(
-            banner=expwy_code_sign_color_banner,
-            main=config_raw['traffic_sign']['expwy_code_sign']['color']['background']['main']
-        )
+        # expwy_code_sign_color = ExpwyCodeSignColorConfig(
+        #     banner=expwy_code_sign_color_banner,
+        #     main=config_raw['traffic_sign']['expwy_code_sign']['color']['background']['main']
+        # )
 
-        expwy_code_sign_without_name_num1_banner_text = ExpwyCodeSignBannerTextConfig(
-            national=BoxConfig(
-                x=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_1']['banner_text']['national'][
-                    'x'],
-                y=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_1']['banner_text']['national'][
-                    'y'],
-                width=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_1']['banner_text']['national'][
-                    'width'],
-                height=
-                config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_1']['banner_text']['national'][
-                    'height']
-            ),
-            province=BoxConfig(
-                x=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_1']['banner_text']['province'][
-                    'x'],
-                y=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_1']['banner_text']['province'][
-                    'y'],
-                width=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_1']['banner_text']['province'][
-                    'width'],
-                height=
-                config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_1']['banner_text']['province'][
-                    'height']
-            )
-        )
+        # expwy_code_sign_without_name_num1_banner_text = ExpwyCodeSignBannerTextConfig(
+        #     national=BoxConfig(
+        #         x=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_1']['banner_text']['national'][
+        #             'x'],
+        #         y=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_1']['banner_text']['national'][
+        #             'y'],
+        #         width=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_1']['banner_text']['national'][
+        #             'width'],
+        #         height=
+        #         config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_1']['banner_text']['national'][
+        #             'height']
+        #     ),
+        #     province=BoxConfig(
+        #         x=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_1']['banner_text']['province'][
+        #             'x'],
+        #         y=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_1']['banner_text']['province'][
+        #             'y'],
+        #         width=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_1']['banner_text']['province'][
+        #             'width'],
+        #         height=
+        #         config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_1']['banner_text']['province'][
+        #             'height']
+        #     )
+        # )
 
         expwy_code_sign_without_name_num1 = ExpwyCodeSignWithoutNameNum1And2Config(
-            template=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_1']['template_path'],
-            code=BoxConfig(
-                x=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_1']['code']['x'],
-                y=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_1']['code']['y'],
-                width=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_1']['code']['width'],
-                height=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_1']['code']['height']
-            ),
-            banner_text=expwy_code_sign_without_name_num1_banner_text
+            template_path=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_1']['template_path'],
+            # code=BoxConfig(
+            #     x=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_1']['code']['x'],
+            #     y=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_1']['code']['y'],
+            #     width=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_1']['code']['width'],
+            #     height=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_1']['code']['height']
+            # ),
+            # banner_text=expwy_code_sign_without_name_num1_banner_text
         )
 
         expwy_code_sign_without_name_num2 = ExpwyCodeSignWithoutNameNum1And2Config(
-            template=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_2']['template_path'],
-            code=BoxConfig(
-                x=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_2']['code']['x'],
-                y=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_2']['code']['y'],
-                width=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_2']['code']['width'],
-                height=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_2']['code']['height']
-            ),
-            banner_text=expwy_code_sign_without_name_num1_banner_text
+            template_path=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_2']['template_path'],
+            # code=BoxConfig(
+            #     x=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_2']['code']['x'],
+            #     y=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_2']['code']['y'],
+            #     width=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_2']['code']['width'],
+            #     height=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_2']['code']['height']
+            # ),
+            # banner_text=expwy_code_sign_without_name_num1_banner_text
         )
 
-        expwy_code_sign_without_name_num4_code = ExpwyCodeSignNum4CodeConfig(
-            big=BoxConfig(
-                x=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_4']['code']['big']['x'],
-                y=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_4']['code']['big']['y'],
-                width=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_4']['code']['big']['width'],
-                height=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_4']['code']['big']['height']
-            ),
-            small=BoxConfig(
-                x=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_4']['code']['small']['x'],
-                y=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_4']['code']['small']['y'],
-                width=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_4']['code']['small']['width'],
-                height=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_4']['code']['small']['height']
-            )
-        )
+        # expwy_code_sign_without_name_num4_code = ExpwyCodeSignNum4CodeConfig(
+        #     big=BoxConfig(
+        #         x=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_4']['code']['big']['x'],
+        #         y=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_4']['code']['big']['y'],
+        #         width=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_4']['code']['big']['width'],
+        #         height=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_4']['code']['big']['height']
+        #     ),
+        #     small=BoxConfig(
+        #         x=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_4']['code']['small']['x'],
+        #         y=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_4']['code']['small']['y'],
+        #         width=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_4']['code']['small']['width'],
+        #         height=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_4']['code']['small']['height']
+        #     )
+        # )
 
         expwy_code_sign_without_name_num4 = ExpwyCodeSignWithoutNameNum4Config(
-            template=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_4']['template_path'],
-            code=expwy_code_sign_without_name_num4_code,
-            banner_text=expwy_code_sign_without_name_num1_banner_text
+            template_path=config_raw['traffic_sign']['expwy_code_sign']['without_name']['num_4']['template_path'],
+            # code=expwy_code_sign_without_name_num4_code,
+            # banner_text=expwy_code_sign_without_name_num1_banner_text
         )
 
         expwy_code_sign_without_name = ExpwyCodeSignWithoutNameConfig(
@@ -170,84 +170,84 @@ class ConfigHandler:
             num_4=expwy_code_sign_without_name_num4
         )
 
-        expwy_code_sign_with_name_num1_banner_text = ExpwyCodeSignBannerTextConfig(
-            national=BoxConfig(
-                x=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['banner_text']['national']['x'],
-                y=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['banner_text']['national']['y'],
-                width=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['banner_text']['national'][
-                    'width'],
-                height=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['banner_text']['national'][
-                    'height']
-            ),
-            province=BoxConfig(
-                x=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['banner_text']['province']['x'],
-                y=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['banner_text']['province']['y'],
-                width=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['banner_text']['province'][
-                    'width'],
-                height=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['banner_text']['province'][
-                    'height']
-            )
-        )
+        # expwy_code_sign_with_name_num1_banner_text = ExpwyCodeSignBannerTextConfig(
+        #     national=BoxConfig(
+        #         x=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['banner_text']['national']['x'],
+        #         y=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['banner_text']['national']['y'],
+        #         width=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['banner_text']['national'][
+        #             'width'],
+        #         height=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['banner_text']['national'][
+        #             'height']
+        #     ),
+        #     province=BoxConfig(
+        #         x=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['banner_text']['province']['x'],
+        #         y=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['banner_text']['province']['y'],
+        #         width=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['banner_text']['province'][
+        #             'width'],
+        #         height=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['banner_text']['province'][
+        #             'height']
+        #     )
+        # )
 
         expwy_code_sign_with_name_num1 = ExpwyCodeSignWithNameNum1And2Config(
-            template=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['template_path'],
-            code=BoxConfig(
-                x=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['code']['x'],
-                y=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['code']['y'],
-                width=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['code']['width'],
-                height=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['code']['height']
-            ),
-            name=BoxConfig(
-                x=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['name']['x'],
-                y=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['name']['y'],
-                width=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['name']['width'],
-                height=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['name']['height']
-            ),
-            banner_text=expwy_code_sign_with_name_num1_banner_text
+            template_path=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['template_path'],
+            # code=BoxConfig(
+            #     x=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['code']['x'],
+            #     y=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['code']['y'],
+            #     width=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['code']['width'],
+            #     height=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['code']['height']
+            # ),
+            # name=BoxConfig(
+            #     x=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['name']['x'],
+            #     y=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['name']['y'],
+            #     width=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['name']['width'],
+            #     height=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_1']['name']['height']
+            # ),
+            # banner_text=expwy_code_sign_with_name_num1_banner_text
         )
 
         expwy_code_sign_with_name_num2 = ExpwyCodeSignWithNameNum1And2Config(
-            template=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_2']['template_path'],
-            code=BoxConfig(
-                x=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_2']['code']['x'],
-                y=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_2']['code']['y'],
-                width=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_2']['code']['width'],
-                height=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_2']['code']['height']
-            ),
-            name=BoxConfig(
-                x=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_2']['name']['x'],
-                y=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_2']['name']['y'],
-                width=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_2']['name']['width'],
-                height=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_2']['name']['height']
-            ),
-            banner_text=expwy_code_sign_with_name_num1_banner_text
+            template_path=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_2']['template_path'],
+            # code=BoxConfig(
+            #     x=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_2']['code']['x'],
+            #     y=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_2']['code']['y'],
+            #     width=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_2']['code']['width'],
+            #     height=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_2']['code']['height']
+            # ),
+            # name=BoxConfig(
+            #     x=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_2']['name']['x'],
+            #     y=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_2']['name']['y'],
+            #     width=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_2']['name']['width'],
+            #     height=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_2']['name']['height']
+            # ),
+            # banner_text=expwy_code_sign_with_name_num1_banner_text
         )
 
-        expwy_code_sign_with_name_num4_code = ExpwyCodeSignNum4CodeConfig(
-            big=BoxConfig(
-                x=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_4']['code']['big']['x'],
-                y=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_4']['code']['big']['y'],
-                width=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_4']['code']['big']['width'],
-                height=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_4']['code']['big']['height']
-            ),
-            small=BoxConfig(
-                x=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_4']['code']['small']['x'],
-                y=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_4']['code']['small']['y'],
-                width=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_4']['code']['small']['width'],
-                height=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_4']['code']['small']['height']
-            )
-        )
+        # expwy_code_sign_with_name_num4_code = ExpwyCodeSignNum4CodeConfig(
+        #     big=BoxConfig(
+        #         x=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_4']['code']['big']['x'],
+        #         y=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_4']['code']['big']['y'],
+        #         width=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_4']['code']['big']['width'],
+        #         height=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_4']['code']['big']['height']
+        #     ),
+        #     small=BoxConfig(
+        #         x=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_4']['code']['small']['x'],
+        #         y=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_4']['code']['small']['y'],
+        #         width=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_4']['code']['small']['width'],
+        #         height=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_4']['code']['small']['height']
+        #     )
+        # )
 
         expwy_code_sign_with_name_num4 = ExpwyCodeSignWithNameNum4Config(
-            template=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_4']['template_path'],
-            code=expwy_code_sign_with_name_num4_code,
-            name=BoxConfig(
-                x=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_4']['name']['x'],
-                y=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_4']['name']['y'],
-                width=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_4']['name']['width'],
-                height=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_4']['name']['height']
-            ),
-            banner_text=expwy_code_sign_with_name_num1_banner_text
+            template_path=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_4']['template_path'],
+            # code=expwy_code_sign_with_name_num4_code,
+            # name=BoxConfig(
+            #     x=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_4']['name']['x'],
+            #     y=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_4']['name']['y'],
+            #     width=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_4']['name']['width'],
+            #     height=config_raw['traffic_sign']['expwy_code_sign']['with_name']['num_4']['name']['height']
+            # ),
+            # banner_text=expwy_code_sign_with_name_num1_banner_text
         )
 
         expwy_code_sign_with_name = ExpwyCodeSignWithNameConfig(
@@ -257,7 +257,7 @@ class ConfigHandler:
         )
 
         expwy_code_sign = ExpwyCodeSignConfig(
-            color=expwy_code_sign_color,
+            # color=expwy_code_sign_color,
             without_name=expwy_code_sign_without_name,
             with_name=expwy_code_sign_with_name
         )
@@ -377,6 +377,7 @@ class ConfigHandler:
             width=config_raw['video_info_layer']['frame']['width'],
             height=config_raw['video_info_layer']['frame']['height'],
             dpi=config_raw['video_info_layer']['frame']['dpi'],
+            min_space =  config_raw['video_info_layer']['frame']['min_space'],
             area=video_info_layer_area,
             road=video_info_layer_road,
             compass=video_info_layer_compass,

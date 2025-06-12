@@ -14,172 +14,22 @@ traffic_sign:
     B: asset/font/jtbz_B.ttf
     C: asset/font/jtbz_C.ttf
   way_num_pad:
-    template: asset/template/way_num.svg
-    width: 400
-    height: 200
-    word:
-      start_x: 50
-      start_y: 50
-      width: 300
-      height: 100
-    color:
-      background:
-        national: red
-        province: yellow
-        other: white
-      stroke:
-        national: white
-        province: black
-        other: black
+    template: asset/template_path/way_num.svg
   expwy_code_sign:
-    color:
-      background:
-        banner:
-          national: red
-          province: yellow
-        main: green
-      stroke:
-        banner:
-          national: white
-          province: black
-        main: white
     without_name:
       num_1:
-        template: asset/template/expwy_1.svg
-        code:
-          start_x: 150
-          start_y: 370
-          width: 700
-          height: 450
-        banner_text:
-          national:
-            start_x: 150
-            start_y: 80
-            width: 700
-            height: 100
-          province:
-            start_x: 250
-            start_y: 80
-            width: 500
-            height: 100
+        template: asset/template_path/expwy_1.svg
       num_2:
-        template: asset/template/expwy_2.svg
-        code:
-          start_x: 90
-          start_y: 370
-          width: 1070
-          height: 450
-        banner_text:
-          national:
-            start_x: 275
-            start_y: 80
-            width: 700
-            height: 100
-          province:
-            start_x: 359.1
-            start_y: 80
-            width: 500
-            height: 100
+        template: asset/template_path/expwy_2.svg
       num_4:
-        template: asset/template/expwy_4.svg
-        code:
-          big:
-            start_x: 90
-            start_y: 370
-            width: 1070
-            height: 450
-          small:
-            start_x: 1220
-            start_y: 520
-            width: 390
-            height: 300
-        banner_text:
-          national:
-            start_x: 355
-            start_y: 80
-            width: 990
-            height: 100
-          province:
-            start_x: 355
-            start_y: 80
-            width: 990
-            height: 100
+        template: asset/template_path/expwy_4.svg
     with_name:
       num_1:
-        template: asset/template/expwy_1_name.svg
-        code:
-          start_x: 150
-          start_y: 340
-          width: 700
-          height: 450
-        name:
-          start_x: 100
-          start_y: 860
-          width: 800
-          height: 200
-        banner_text:
-          national:
-            start_x: 150
-            start_y: 110
-            width: 700
-            height: 100
-          province:
-            start_x: 250
-            start_y: 110
-            width: 500
-            height: 100
+        template: asset/template_path/expwy_1_name.svg
       num_2:
-        template: asset/template/expwy_2_name.svg
-        code:
-          start_x: 90
-          start_y: 340
-          width: 1070
-          height: 450
-        name:
-          start_x: 150
-          start_y: 860
-          width: 950
-          height: 200
-        banner_text:
-          national:
-            start_x: 275
-            start_y: 110
-            width: 700
-            height: 100
-          province:
-            start_x: 359.1
-            start_y: 110
-            width: 500
-            height: 100
+        template: asset/template_path/expwy_2_name.svg
       num_4:
-        template: asset/template/expwy_4_name.svg
-        code:
-          big:
-            start_x: 90
-            start_y: 340
-            width: 1070
-            height: 450
-          small:
-            start_x: 1220
-            start_y: 490
-            width: 390
-            height: 300
-        name:
-          start_x: 150
-          start_y: 860
-          width: 1400
-          height: 200
-        banner_text:
-          national:
-            start_x: 355
-            start_y: 110
-            width: 990
-            height: 100
-          province:
-            start_x: 355
-            start_y: 110
-            width: 990
-            height: 100
+        template: asset/template_path/expwy_4_name.svg
 
 video_info_layer:
   font_path:
@@ -192,6 +42,7 @@ video_info_layer:
     width: 3840
     height: 2160
     dpi: 72
+    min_space: 48
     area:
       chinese:
         x: 191.8085

@@ -1,9 +1,11 @@
 import csv
 import io
+import math
 import os
 import string
 from datetime import datetime
 from typing import List
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import cairosvg
 import moviepy
@@ -80,13 +82,16 @@ speed_unit_xy = (3649, 1997)
 # 缓存 SVG 信息，加快路牌生成速度
 road_num_svg_cache = {}
 
+
 def svg_to_img(svg_path):
     svg = cairosvg.svg2png(url=svg_path, dpi=72)
     return Image.open(io.BytesIO(svg))
 
+
 def svg_drawing_to_img(svg_drawing: Drawing):
     svg = cairosvg.svg2png(bytestring=svg_drawing.tostring(), dpi=72)
     return Image.open(io.BytesIO(svg))
+
 
 def generate_pic(
         area_zh, area_en, road_sign_list, road_zh, road_en, compass_angle, used_route, used_time, remain_route,
@@ -116,7 +121,7 @@ def generate_pic(
         draw_table.text(xy=area_chinese_xy, text=area_zh, fill=font_color, font=big_font)
     if area_en:
         draw_table.text(xy=area_english_xy, text=area_en, fill=font_color, font=small_font)
-    
+
     # 当前道路
     # road_sign_list = [generate_way_num_pad('G310'), generate_way_num_pad('S209'), generate_expwy_pad('S0211', '豫')]
     road_sign_offset = road_xy[0]
@@ -130,18 +135,29 @@ def generate_pic(
             image.paste(resized_img, (road_sign_offset, road_xy[1] - resized_img.size[1] // 2))
             road_sign_offset += new_road_sign_wigth + road_sign_space
         road_sign_offset = road_sign_offset - road_sign_space + road_sign_char_space
+    road_zh_right_x = 0
+    road_en_right_x = 0
     if road_zh:
         draw_table.text(xy=(road_sign_offset, road_chinese_y), text=road_zh, fill=font_color, font=big_font)
+        # 获取中文字符宽度，后续判断是否移动指南针位置
+        road_zh_width = draw_table.textlength(text=road_zh, font=big_font)
+        road_zh_right_x = road_sign_offset + road_zh_width
     if road_en:
         draw_table.text(xy=(road_sign_offset, road_english_y), text=road_en, fill=font_color, font=small_font)
-    
+        road_en_width = draw_table.textlength(text=road_en, font=small_font)
+        road_en_right_x = road_sign_offset + road_en_width
+
+    compass_final_xy = compass_xy
+    if road_zh_right_x + road_sign_char_space > compass_xy[0] or road_en_right_x + road_sign_char_space > compass_xy[0]:
+        compass_final_xy = (math.ceil(max(road_zh_right_x, road_en_right_x) + road_sign_char_space), compass_xy[1])
+
     # 指南针
     if compass_angle is not None:
         compass_image = svg_to_img(compass_img_path)
         # 表示的是在当前方向上的正北（当前方向恒定为上），故不要加负号
         compass_image = compass_image.rotate(compass_angle, expand=False)
-        image.paste(compass_image, compass_xy)
-    
+        image.paste(compass_image, compass_final_xy)
+
     # 已走 / 剩余
     if used_route is not None or used_time is not None or remain_route is not None or remain_time is not None:
         sep_image = svg_to_img(route_time_sep_img_path)
@@ -150,45 +166,53 @@ def generate_pic(
         # used_route_str 格式化 used_route 为一位小数
         used_route_str = '{:.1f}'.format(used_route)
         used_route_width = draw_table.textlength(text=used_route_str, font=big_eng_font)
-        draw_table.text(xy=(used_route_xy[0] - used_route_width, used_route_xy[1]), text=used_route_str, fill=font_color,
+        draw_table.text(xy=(used_route_xy[0] - used_route_width, used_route_xy[1]), text=used_route_str,
+                        fill=font_color,
                         font=big_eng_font)
     if used_time is not None:
         # used_time_str: 格式化 used_time 秒数为时分秒
-        used_time_str = '{:02d}:{:02d}:{:02d}'.format(int(used_time / 3600), int(used_time % 3600 / 60), int(used_time % 60))
+        used_time_str = '{:02d}:{:02d}:{:02d}'.format(int(used_time / 3600), int(used_time % 3600 / 60),
+                                                      int(used_time % 60))
         used_time_width = draw_table.textlength(text=used_time_str, font=small_font)
-        draw_table.text(xy=(used_time_xy[0] - used_time_width, used_time_xy[1]), text=used_time_str, fill=font_color, font=small_font)
+        draw_table.text(xy=(used_time_xy[0] - used_time_width, used_time_xy[1]), text=used_time_str, fill=font_color,
+                        font=small_font)
     if remain_route is not None:
         remain_route_str = '{:.1f}'.format(remain_route)
         draw_table.text(xy=remain_route_xy, text=remain_route_str, fill=font_color, font=big_eng_font)
     if remain_time is not None:
         remain_time_str = '{:02d}:{:02d}:{:02d}'.format(int(remain_time / 3600), int(remain_time % 3600 / 60),
-                                                      int(remain_time % 60))
+                                                        int(remain_time % 60))
         draw_table.text(xy=remain_time_xy, text=remain_time_str, fill=font_color, font=small_font)
-    
+
     # 高度
     if altitude is not None:
         altitude_str = '{:.1f}'.format(altitude)
         altitude_width = draw_table.textlength(text=altitude_str, font=big_eng_font)
         altitude_unit_width = draw_table.textlength(text='m', font=small_font)
-        draw_table.text(xy=(altitude_xy[0] - altitude_width, altitude_xy[1]), text=altitude_str, fill=font_color, font=big_eng_font)
-        draw_table.text(xy=(altitude_unit_xy[0] - altitude_unit_width, altitude_unit_xy[1]), text='m', fill=font_color, font=small_font)
-    
+        draw_table.text(xy=(altitude_xy[0] - altitude_width, altitude_xy[1]), text=altitude_str, fill=font_color,
+                        font=big_eng_font)
+        draw_table.text(xy=(altitude_unit_xy[0] - altitude_unit_width, altitude_unit_xy[1]), text='m', fill=font_color,
+                        font=small_font)
+
     # 时速
     if speed is not None:
         speed_text = '{:.1f}'.format(speed)
         speed_width = draw_table.textlength(text=speed_text, font=big_eng_font)
         speed_unit_width = draw_table.textlength(text='km/h', font=small_font)
-        draw_table.text(xy=(speed_xy[0] - speed_width, speed_xy[1]), text=speed_text, fill=font_color, font=big_eng_font)
-        draw_table.text(xy=(speed_unit_xy[0] - speed_unit_width, speed_unit_xy[1]), text='km/h', fill=font_color, font=small_font)
+        draw_table.text(xy=(speed_xy[0] - speed_width, speed_xy[1]), text=speed_text, fill=font_color,
+                        font=big_eng_font)
+        draw_table.text(xy=(speed_unit_xy[0] - speed_unit_width, speed_unit_xy[1]), text='km/h', fill=font_color,
+                        font=small_font)
 
     return image
     # image.show()  # 直接显示图片
     # # image.save('满月.png', 'PNG')  # 保存在当前路径下，格式为PNG
     # image.close()
 
+
 def read_csv(path: str) -> List[dict]:
     dict_list = []
-    with open(path, mode='r', newline='', encoding='gbk') as csv_file:
+    with open(path, mode='r', newline='', encoding='utf-8-sig') as csv_file:
         reader = csv.DictReader(csv_file)
         for row in tqdm(reader, desc='Processing csv data', unit='point(s)'):
             dict_list.append(row)
@@ -202,12 +226,13 @@ def read_csv(path: str) -> List[dict]:
                         '%Y/%m/%d %H:%M:%S'
                     )
                 elif key == 'elapsed_time':
-                    row[key] = int(value)
+                    row[key] = int(float(value))
                 elif key in ['latitude', 'longitude', 'elevation', 'distance', 'course', 'speed']:
                     row[key] = float(value)
                 else:
                     row[key] = value
         return dict_list
+
 
 def fill_missing_entries(data):
     """
@@ -231,7 +256,8 @@ def fill_missing_entries(data):
     # 上一个处理的字典，用于填充缺失项的其他键值对
     last_item = None
 
-    for elapsed_time in tqdm(range(min_time, max_time + 1), total=max_time - min_time + 1, desc='Filling missing entries', unit='point(s)'):
+    for elapsed_time in tqdm(range(min_time, max_time + 1), total=max_time - min_time + 1,
+                             desc='Filling missing entries', unit='point(s)'):
         if elapsed_time in time_to_data:
             filled_data.append(time_to_data[elapsed_time])
             last_item = time_to_data[elapsed_time]
@@ -243,11 +269,12 @@ def fill_missing_entries(data):
 
     return filled_data
 
+
 # 整理字典数据，读到附加信息
 def read_csv_with_additional_info(
-        path: str, start_index = 0, end_index = -1,
-        start_index_after_fill = 0, end_index_after_fill = -1,
-        crop_start = 0, crop_end = -1
+        path: str, start_index=0, end_index=-1,
+        start_index_after_fill=0, end_index_after_fill=-1,
+        crop_start=0, crop_end=-1
 ):
     """
     整理字典数据，读到附加信息
@@ -269,25 +296,30 @@ def read_csv_with_additional_info(
     if crop_end < 0:
         crop_end += len(dict_list)
     for i, row in tqdm(enumerate(dict_list), total=len(dict_list), desc='Processing dict', unit='point(s)'):
+        new_row = row.copy()
         if int(row['index']) < crop_start or int(row['index']) > crop_end:
             continue
-        row['real_index'] = i
-        row['elapsed_time'] = row['elapsed_time'] - dict_list[0]['elapsed_time'] if row['elapsed_time'] is not None else None
-        row['distance'] = row['distance'] - dict_list[0]['distance'] if row['distance'] is not None else None
-        row['remain_time'] = total_time - row['elapsed_time'] if row['elapsed_time'] is not None else None
-        row['remain_distance'] = total_distance - row['distance'] if row['distance'] is not None else None
+        new_row['real_index'] = i
+        new_row['elapsed_time'] = row['elapsed_time'] - dict_list[0]['elapsed_time'] - start_index_after_fill if row[
+                                                                                                                     'elapsed_time'] is not None else None
+        new_row['distance'] = row['distance'] - dict_list[0]['distance'] if row['distance'] is not None else None
+        new_row['remain_time'] = total_time - new_row['elapsed_time'] if new_row['elapsed_time'] is not None else None
+        new_row['remain_distance'] = total_distance - new_row['distance'] if new_row['distance'] is not None else None
         # 单位调整
-        row['speed'] = row['speed'] * 3.6 if row['speed'] is not None else None
-        row['distance'] = row['distance'] / 1000 if row['distance'] is not None else None
-        row['remain_distance'] = row['remain_distance'] / 1000 if row['remain_distance'] is not None else None
-        row['full_area'] = f"{row['province']} {row['city']} {row['area']}"
-        row['full_area_en'] = f"{row['area_en']}, {row['city_en']}, {row['province_en']}"
-        row['road_sign_svg'] = []
+        new_row['speed'] = new_row['speed'] * 3.6 if new_row['speed'] is not None else None
+        new_row['distance'] = new_row['distance'] / 1000 if new_row['distance'] is not None else None
+        new_row['remain_distance'] = new_row['remain_distance'] / 1000 if new_row[
+                                                                              'remain_distance'] is not None else None
+        # 区域信息如无，则不显示
+        new_row['full_area'] = ' '.join([i for i in [row['province'], row['city'], row['area']] if i])
+        new_row['full_area_en'] = ', '.join([i for i in [row['area_en'], row['city_en'], row['province_en']] if i])
+
+        new_row['road_sign_svg'] = []
         if 'road_num' in row and row['road_num']:
             road_sign_num_list = row['road_num'].split(',')
             for road_sign in road_sign_num_list:
                 if road_sign in road_num_svg_cache:
-                    row['road_sign_svg'].append(road_num_svg_cache[road_sign])
+                    new_row['road_sign_svg'].append(road_num_svg_cache[road_sign])
                     continue
                 # 第一位为大写字母，则为国道、省道等普通道路，或者是国家高速
                 if road_sign[0] in string.ascii_uppercase:
@@ -299,21 +331,23 @@ def read_csv_with_additional_info(
                 else:
                     svg_drawing = generate_expwy_pad(road_sign[1:], province=road_sign[0])
                 road_num_svg_cache[road_sign] = svg_drawing
-                row['road_sign_svg'].append(svg_drawing)
-        new_dict_list.append(row)
+                new_row['road_sign_svg'].append(svg_drawing)
+        new_dict_list.append(new_row)
     return new_dict_list
 
-def generate_pic_from_processed_dict_list(dict_list: List[dict], crop_start = 0):
+
+def generate_pic_from_processed_dict_list(dict_list: List[dict], crop_start=0, out_dir: str = 'out/test', max_workers=4):
     """
-    通过调整后的字典列表生成图片
+    通过调整后的字典列表生成图片（多线程版本）
     :param dict_list: 字典列表
     :param crop_start: 裁剪开始。注意：这里看的是 real_index 键的值
+    :param out_dir: 输出目录。末尾不带斜杠
+    :param max_workers: 最大线程数
     :return:
     """
-    for i, row in tqdm(enumerate(dict_list), total=len(dict_list), desc='Generating pic', unit='point(s)'):
+    def process_row(i, row):
         img = generate_pic(
             area_zh=row['full_area'], area_en=row['full_area_en'],
-            # road_sign_list=[generate_way_num_pad('G310')],
             road_sign_list=row['road_sign_svg'],
             road_zh=row['road_name'], road_en=row['road_name_en'],
             compass_angle=row['course'],
@@ -321,14 +355,33 @@ def generate_pic_from_processed_dict_list(dict_list: List[dict], crop_start = 0)
             remain_route=row['remain_distance'], remain_time=row['remain_time'],
             altitude=row['elevation'], speed=row['speed']
         )
-        # img.show()
-        img.save('out/test/pic_{:0>8d}.png'.format(row['real_index']), 'PNG')
+        img.save(f'{out_dir}/pic_{row["real_index"]:08d}.png', 'PNG')
         img.close()
-    # return img_list
 
-def generate_pic_from_csv(path: str, start_index = 0, end_index = -1, start_index_after_fill = 0, end_index_after_fill = -1, crop_start = 0, crop_end = -1):
-    dict_list = read_csv_with_additional_info(path, start_index, end_index, start_index_after_fill, end_index_after_fill, crop_start, crop_end)
-    generate_pic_from_processed_dict_list(dict_list, crop_start)
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(process_row, i, row) for i, row in enumerate(dict_list)]
+        for future in tqdm(as_completed(futures), total=len(futures), desc='Generating pic', unit='point(s)'):
+            pass
+
+
+def generate_pic_from_csv(path: str, start_index=0, end_index=-1, start_index_after_fill=0, end_index_after_fill=-1,
+                          crop_start=0, crop_end=-1, out_dir: str = 'out/test'):
+    """
+    从 CSV 文件中生成图片
+    :param path: CSV 文件路径
+    :param start_index: 开始的序号
+    :param end_index: 结束的序号
+    :param start_index_after_fill: 填补缺失帧之后的开始的序号（用于与视频对齐，填写秒数）
+    :param end_index_after_fill: 填补缺失帧之后的结束的序号（用于与视频对齐，填写秒数）
+    :param crop_start 输出帧的序号起始，用于修改特定范围内的帧
+    :param crop_end 输出帧的序号结束，用于修改特定范围内的帧
+    :param out_dir: 输出目录。末尾不带斜杠
+    :return: None
+    """
+    dict_list = read_csv_with_additional_info(path, start_index, end_index, start_index_after_fill,
+                                              end_index_after_fill, crop_start, crop_end)
+    generate_pic_from_processed_dict_list(dict_list, crop_start, out_dir)
+
 
 # def generate_video_from_pics(from_path: str, gen_path: str):
 #     imglist = []
@@ -380,6 +433,8 @@ if __name__ == '__main__':
     # )
     # img.show()
     # img.close()
-    pic_list = generate_pic_from_csv('../../../test/20250226132250.csv', start_index_after_fill=0, end_index_after_fill=-17, crop_start=1342, crop_end=1358)
+    pic_list = generate_pic_from_csv(r'E:\project\recorded\route\gcj\九江-景德镇.csv',
+                                     out_dir=r"E:\project\recorded\20250409-九江-景德镇\overlay\2", crop_start=6379,
+                                     crop_end=6475)
     # 生成视频在 Pr 中有问题，故只做图像序列
     # generate_video_from_pics('out/test/', 'out/test.mov')
