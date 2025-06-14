@@ -1,4 +1,6 @@
-from xml.dom.minidom import parse
+import io
+from typing import Literal, TextIO
+from xml.dom.minidom import parse, Document
 import codecs
 from tqdm import tqdm
 
@@ -14,7 +16,13 @@ sys.path.insert(0, vendor_path)
 
 from vendor.coordTransform_py.coord_converter import convert_by_type
 
-def convert_single_point(lng, lat, original_coordinate_type, transformed_coordinate_type):
+coordinate_type_hint = Literal['wgs84', 'gcj02', 'bd09']
+
+def convert_single_point(
+        lng, lat,
+        original_coordinate_type: coordinate_type_hint,
+        transformed_coordinate_type: coordinate_type_hint
+):
     if original_coordinate_type == transformed_coordinate_type:
         return lng, lat
     if original_coordinate_type == 'wgs84':
@@ -36,21 +44,70 @@ def convert_single_point(lng, lat, original_coordinate_type, transformed_coordin
         return None
     raise AttributeError('Invalid coordinate type')
 
-def convert_gpx(path, out_path, convert_type, lng_column='lon', lat_column='lat'):
-    domTree = parse(path)
-    # 文档根元素
-    gpxNode = domTree.documentElement
-    trkptNode = gpxNode.getElementsByTagName("trkpt")
+def gen_convert_type(
+        original_coordinate_type: coordinate_type_hint,
+        transformed_coordinate_type: coordinate_type_hint
+) -> str:
+    """
+    Generate convert type for vendor.coordTransform_py.coord_converter.convert_by_type.
+    :param original_coordinate_type: str
+    :param transformed_coordinate_type:
+    :return:
+    """
+    if original_coordinate_type == transformed_coordinate_type:
+        # return same file
+        return ''
+    if original_coordinate_type == 'wgs84':
+        if transformed_coordinate_type == 'gcj02':
+            return 'w2g'
+        if transformed_coordinate_type == 'bd09':
+            return 'w2b'
+    elif original_coordinate_type == 'gcj02':
+        if transformed_coordinate_type == 'wgs84':
+            return 'g2w'
+        if transformed_coordinate_type == 'bd09':
+            return 'g2b'
+    elif original_coordinate_type == 'bd09':
+        if transformed_coordinate_type == 'wgs84':
+            return 'b2w'
+        if transformed_coordinate_type == 'gcj02':
+            return 'b2g'
+    raise AttributeError('Invalid coordinate type')
 
-    for trkpt in tqdm(trkptNode, total=len(trkptNode), desc='Converting GPX points', unit='point(s)'):
-        result = convert_by_type(float(trkpt.attributes[lng_column].value), float(trkpt.attributes[lat_column].value), convert_type)
-        trkpt.attributes[lng_column].value=str(result[0])
-        trkpt.attributes[lat_column].value=str(result[1])
+def convert_gpx(
+        file: str | io.IOBase,
+        original_coordinate_type,
+        transformed_coordinate_type,
+) -> Document:
+
+    convert_type = gen_convert_type(original_coordinate_type, transformed_coordinate_type)
+    dom_tree = parse(file)
+    if original_coordinate_type == transformed_coordinate_type:
+        return dom_tree
+    # 文档根元素
+    gpx_node = dom_tree.documentElement
+    trkpt_node = gpx_node.getElementsByTagName("trkpt")
+
+    for trkpt in tqdm(trkpt_node, total=len(trkpt_node), desc='Converting GPX points', unit='point(s)'):
+        result = convert_by_type(float(trkpt.attributes['lon'].value), float(trkpt.attributes['lat'].value),
+                                 convert_type)
+        trkpt.attributes['lon'].value = str(result[0])
+        trkpt.attributes['lat'].value = str(result[1])
+    return dom_tree
+
+
+def convert_gpx_to_file(
+        in_path,
+        out_path,
+        original_coordinate_type,
+        transformed_coordinate_type,
+):
+    dom_tree = convert_gpx(in_path, original_coordinate_type, transformed_coordinate_type)
 
     with open(out_path, 'wb+') as f:
         #解决写入中文乱码问题
         f = codecs.lookup("utf-8")[3](f)
-        domTree.writexml(f, encoding='utf-8')
+        dom_tree.writexml(f, encoding='utf-8')
 
 if __name__ == '__main__':
-    convert_gpx(r'E:\project\recorded\route\20250411104616.gpx', 'gcj.gpx', 'w2g')
+    convert_gpx_to_file(r"E:\project\recorded\202504旅游轨迹\20250402083731.gpx", 'gcj.gpx', original_coordinate_type='wgs84', transformed_coordinate_type='gcj02')
