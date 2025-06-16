@@ -1,5 +1,5 @@
 import io
-from typing import Literal, TextIO
+from typing import Literal, TextIO, IO
 from xml.dom.minidom import parse, Document
 import codecs
 from tqdm import tqdm
@@ -75,7 +75,7 @@ def gen_convert_type(
     raise AttributeError('Invalid coordinate type')
 
 def convert_gpx(
-        file: str | io.IOBase,
+        file: str | IO,
         original_coordinate_type,
         transformed_coordinate_type,
 ) -> Document:
