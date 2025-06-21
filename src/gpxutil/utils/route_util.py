@@ -4,6 +4,7 @@ from typing import List
 
 import gpxpy.gpx
 from geopandas import GeoDataFrame
+from loguru import logger
 from shapely import Point
 
 from src.gpxutil.models.exceptions import PointAreaNotFoundException

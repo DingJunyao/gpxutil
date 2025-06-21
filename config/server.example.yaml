@@ -1,0 +1,12 @@
+mongodb:
+  # url: mongodb://localhost:27017/
+  host: localhost
+  port: 27017
+  username:
+  password:
+  db: gpxutil_server
+redis:
+  host: localhost
+  port: 6379
+  password:
+  db: 0

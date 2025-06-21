@@ -1,10 +1,11 @@
 tqdm
 pyyaml
 loguru
+DBUtils
 
 # GUI
 pyside6
-# PyQt-Fluent-Widgets[full]
+PySide6-Fluent-Widgets[full]
 
 # gpx2csv.py
 gpxpy
@@ -26,3 +27,16 @@ imageio
 
 # fontforge_export_svg.py
 # need to run in fontforge python environment
+
+# server
+fastapi
+uvicorn[standard]
+python-multipart
+beanie
+bunnet
+motor
+celery
+redis
+# windows 上要安装，https://blog.csdn.net/showgea/article/details/109342664
+eventlet
+flower

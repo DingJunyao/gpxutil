@@ -3,18 +3,22 @@ import threading
 
 import geopandas as gpd
 from geopandas import GeoDataFrame
-from tqdm import tqdm
 
 from src.gpxutil.core.config import CONFIG_HANDLER
+from src.gpxutil.utils.process import threaded_map_list
 
 GEOJSON_DIR = CONFIG_HANDLER.config.area_info.gdf_dir_path
 
 def load_area_gdf_list(geojson_dir: str) -> list[GeoDataFrame]:
-    gdf_list = []
     filename_list = os.listdir(geojson_dir)
-    for filename in tqdm(filename_list, total=len(filename_list), desc="Load Area GeoJSON files", unit='file(s)'):
+    @threaded_map_list(desc="Load Area GeoJSON files", unit='file(s)')
+    def load_gdf_file(filename):
         if filename.endswith(".json") or filename.endswith(".geojson"):
-            gdf_list.append(gpd.read_file(os.path.join(geojson_dir, filename)))
+            return gpd.read_file(os.path.join(geojson_dir, filename))
+        return None
+
+    gdf_list = [gdf for gdf in load_gdf_file(filename_list) if gdf is not None]
+                
     return gdf_list
 
 class GDFListHandler:

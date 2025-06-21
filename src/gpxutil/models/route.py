@@ -14,6 +14,7 @@ from src.gpxutil.utils.data_type_processor import process_or_none, float_or_none
 from src.gpxutil.utils.datetime_util import datetime_yyyymmdd_slash_time_microsecond_tz
 from src.gpxutil.utils.db_connect import AreaCodeConnectHandler
 from src.gpxutil.utils.gdf_handler import GDFListHandler
+from src.gpxutil.utils.process import threaded_map_list, threaded_map
 from src.gpxutil.utils.route_util import calculate_bearing, get_area_info
 from src.gpxutil.utils.gpx_convert import convert_single_point
 
@@ -289,13 +290,18 @@ class Route:
         :return: None
         """
         # list(map(lambda point: point.set_area(area_gdf_list, area_code_conn, force), self.points))
-        for point in tqdm(self.points, total=len(self.points), desc="Set Area", unit='point(s)'):
+        # for point in tqdm(self.points, total=len(self.points), desc="Set Area", unit='point(s)'):
+        #     point.set_area(area_gdf_list, area_code_conn, force)
+        @threaded_map(desc="Set Area", unit='point(s)')
+        def point_set_area(point: RoutePoint):
             point.set_area(area_gdf_list, area_code_conn, force)
+
+        point_set_area(self.points)
 
     @staticmethod
     def from_gpx_obj(
             gpx: gpxpy.gpx.GPX, track_index: int = 0, segment_index: int = 0,
-            transform_coordinate: bool = False, coordinate_type: str = None, transformed_coordinate_type: str = None,
+            transform_coordinate: bool = False, coordinate_type: str = 'wgs84', transformed_coordinate_type: str = 'wgs84',
             set_area: bool = False, area_gdf_list: list[GeoDataFrame] = None, area_code_conn: sqlite3.Connection = None
     ) -> 'Route':
         """
@@ -372,8 +378,8 @@ class Route:
             ))
         return Route(
             points=ret_list,
-            coordinate_type=coordinate_type if transform_coordinate else None,
-            transformed_coordinate_type=transformed_coordinate_type if transform_coordinate else None,
+            coordinate_type=coordinate_type,
+            transformed_coordinate_type=transformed_coordinate_type,
         )
 
     @staticmethod
@@ -534,19 +540,19 @@ class Route:
 
 if __name__ == '__main__':
     test_route = Route.from_gpx_file(
-        '../../../test/gpx_sample/from_gps_logger.gpx',
+        './test/gpx_sample/from_gps_logger.gpx',
         transform_coordinate=True, coordinate_type='wgs84', transformed_coordinate_type='gcj02',
-        set_area=True, area_gdf_list=GDFListHandler().list, area_code_conn=AreaCodeConnectHandler().conn
+        set_area=True, area_gdf_list=GDFListHandler().list, area_code_conn=AreaCodeConnectHandler().get_connection()
     )
-    test_route.to_gpx_file('../../../test/gpx_sample/from_gps_logger_to_gpx.gpx', export_transformed_coordinate=True)
-    test_route_2 = Route.from_gpx_file('../../../test/gpx_sample/from_gps_logger.gpx',
-        transform_coordinate=True, coordinate_type='wgs84', transformed_coordinate_type='gcj02',
-        set_area=True, area_gdf_list=GDFListHandler().list, area_code_conn=AreaCodeConnectHandler().conn
-    )
-    test_route.to_json_file('../../../test/gpx_sample/from_gps_logger_to_json.json')
-    test_route_from_json = Route.from_json_file('../../../test/gpx_sample/from_gps_logger_to_json.json')
-    test_route.to_csv('../../../test/gpx_sample/from_gps_logger_to_csv.csv')
-    test_route_from_csv = Route.from_csv('../../../test/gpx_sample/from_gps_logger_to_csv.csv', coordinate_type='wgs84', transformed_coordinate_type='gcj02')
+    # test_route.to_gpx_file('../../../test/gpx_sample/from_gps_logger_to_gpx.gpx', export_transformed_coordinate=True)
+    # test_route_2 = Route.from_gpx_file('../../../test/gpx_sample/from_gps_logger.gpx',
+    #     transform_coordinate=True, coordinate_type='wgs84', transformed_coordinate_type='gcj02',
+    #     set_area=True, area_gdf_list=GDFListHandler().list, area_code_conn=AreaCodeConnectHandler().get_connection()
+    # )
+    # test_route.to_json_file('../../../test/gpx_sample/from_gps_logger_to_json.json')
+    # test_route_from_json = Route.from_json_file('../../../test/gpx_sample/from_gps_logger_to_json.json')
+    # test_route.to_csv('../../../test/gpx_sample/from_gps_logger_to_csv.csv')
+    # test_route_from_csv = Route.from_csv('../../../test/gpx_sample/from_gps_logger_to_csv.csv', coordinate_type='wgs84', transformed_coordinate_type='gcj02')
     print(test_route.points[0])
-    print(test_route_from_json.points[0])
-    print(test_route_from_csv.points[0])
+    # print(test_route_from_json.points[0])
+    # print(test_route_from_csv.points[0])

@@ -1,12 +1,14 @@
 import io
 from typing import Literal, TextIO, IO
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from xml.dom.minidom import parse, Document
 import codecs
-from tqdm import tqdm
-
 import sys
 from pathlib import Path
 
+from tqdm import tqdm
+
+from src.gpxutil.utils.process import threaded_map
 from vendor.coordTransform_py.coordTransform_utils import wgs84_to_gcj02, wgs84_to_bd09, gcj02_to_wgs84, gcj02_to_bd09, \
     bd09_to_wgs84, bd09_to_gcj02
 
@@ -74,6 +76,12 @@ def gen_convert_type(
             return 'b2g'
     raise AttributeError('Invalid coordinate type')
 
+@threaded_map(desc="Converting GPX points", unit="point(s)")
+def process_trkpt(trkpt, convert_type):
+    result = convert_by_type(float(trkpt.attributes['lon'].value), float(trkpt.attributes['lat'].value), convert_type)
+    trkpt.attributes['lon'].value = str(result[0])
+    trkpt.attributes['lat'].value = str(result[1])
+    return trkpt
 def convert_gpx(
         file: str | IO,
         original_coordinate_type,
@@ -84,15 +92,13 @@ def convert_gpx(
     dom_tree = parse(file)
     if original_coordinate_type == transformed_coordinate_type:
         return dom_tree
+
     # 文档根元素
     gpx_node = dom_tree.documentElement
-    trkpt_node = gpx_node.getElementsByTagName("trkpt")
+    trkpt_nodes = gpx_node.getElementsByTagName("trkpt")
 
-    for trkpt in tqdm(trkpt_node, total=len(trkpt_node), desc='Converting GPX points', unit='point(s)'):
-        result = convert_by_type(float(trkpt.attributes['lon'].value), float(trkpt.attributes['lat'].value),
-                                 convert_type)
-        trkpt.attributes['lon'].value = str(result[0])
-        trkpt.attributes['lat'].value = str(result[1])
+    process_trkpt(trkpt_nodes, convert_type)
+
     return dom_tree
 
 
