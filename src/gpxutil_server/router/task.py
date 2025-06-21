@@ -1,13 +1,13 @@
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Path
 
 from src.gpxutil_server.core.db import REDIS_CLIENT
 
 router = APIRouter(prefix="/task", tags=["task"])
 
-@router.get("/{task_id}/progress")
-async def get_task_progress(task_id: str):
+@router.get("/{task_id}/progress", name="获取任务进度", description="获取任务进度")
+async def get_task_progress(task_id: str = Path(title="任务 ID", description='要查询的任务 ID')):
     # 从Redis获取进度数据
     progress_data = REDIS_CLIENT.hgetall(f"task_progress:{task_id}")
 

@@ -10,8 +10,12 @@ from src.gpxutil.utils.gpx_convert import convert_gpx
 
 router = APIRouter(prefix="/gpx", tags=["gpx"])
 
-@router.post('convert')
-async def convert(gpx_file: UploadFile = File(), input_type: str = Form(default='wgs84'), output_type: str = Form(default='gcj02')):
+@router.post('convert', name='转换 GPX 坐标', description='转换 GPX 坐标，返回文件')
+async def convert(
+        gpx_file: UploadFile = File(title='GPX 文件', description='要转换的 GPX 文件'),
+        input_type: str = Form(default='wgs84', title='坐标类型', description='文件中的坐标类型'),
+        output_type: str = Form(default='gcj02', title='转换后坐标类型', description='要转换的坐标类型')
+):
     """
     Convert GPX coordinate type.
     :param gpx_file: GPX file

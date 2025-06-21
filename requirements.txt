@@ -30,7 +30,7 @@ imageio
 
 # server
 fastapi
-uvicorn[standard]
+uvicorn[standard]==0.20.0
 python-multipart
 beanie
 bunnet
