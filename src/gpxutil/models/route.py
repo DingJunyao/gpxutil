@@ -14,6 +14,7 @@ from src.gpxutil.utils.data_type_processor import process_or_none, float_or_none
 from src.gpxutil.utils.datetime_util import datetime_yyyymmdd_slash_time_microsecond_tz
 from src.gpxutil.utils.db_connect import AreaCodeConnectHandler
 from src.gpxutil.utils.gdf_handler import GDFListHandler
+from src.gpxutil.utils.nominatim import get_point_info
 from src.gpxutil.utils.route_util import calculate_bearing, get_area_info
 from src.gpxutil.utils.gpx_convert import convert_single_point
 
@@ -91,7 +92,7 @@ class RoutePoint:
     memo: Optional[str] = None
     """备注"""
 
-    def set_area(self, area_gdf_list: list[GeoDataFrame], area_code_conn: sqlite3.Connection, force: bool = False):
+    def set_area(self, from_nominatim: bool = True, area_gdf_list: list[GeoDataFrame] = None, area_code_conn: sqlite3.Connection = None, force: bool = False):
         """
         填写行政区划。目前的做法是：加载各地区的 geojson 文件（area_gdf_list），判断点属于哪个地区的，得到代码，在给定的 SQLite 文件中找到对应代码的行政区划。
         :param area_gdf_list: 各地区的 geojson 文件转换为 GeoDataFrame 后的列表
@@ -101,19 +102,41 @@ class RoutePoint:
         """
         if self.province is not None and self.city is not None and self.area is not None and not force:
             return
-        area_info = get_area_info(Point(self.longitude, self.latitude), area_gdf_list, area_code_conn)
-        province_result = area_info[0] if area_info is not None else None
-        city_result = area_info[1] if area_info is not None else None
-        area_result = area_info[2] if area_info is not None else None
-        if self.province != province_result:
-            self.province_en = None
-        if self.city != city_result:
-            self.city_en = None
-        if self.area != area_result:
-            self.area_en = None
-        self.province = province_result
-        self.city = city_result
-        self.area = area_result
+        if from_nominatim:
+            area_info = get_point_info(self.longitude, self.latitude)
+            province_result, city_result, area_result, town_result, road_name_result, road_num_result, province_en_result, city_en_result, area_en_result, town_en_result, road_name_en_result, memo_result = area_info
+            if self.province != province_result:
+                self.province_en = None
+            if self.city != city_result:
+                self.city_en = None
+            if self.area != area_result:
+                self.area_en = None
+            if self.road_name != road_name_result:
+                self.road_name_en = None
+            self.province = province_result
+            self.city = city_result
+            self.area = area_result
+            self.road_name = road_name_result
+            self.road_num = road_num_result
+            if force:
+                self.province_en = province_en_result
+                self.city_en = city_en_result
+                self.area_en = area_en_result
+                self.road_name_en = road_name_en_result
+        else:
+            area_info = get_area_info(Point(self.longitude, self.latitude), area_gdf_list = area_gdf_list, area_code_conn = area_code_conn)
+            province_result = area_info[0] if area_info is not None else None
+            city_result = area_info[1] if area_info is not None else None
+            area_result = area_info[2] if area_info is not None else None
+            if self.province != province_result:
+                self.province_en = None
+            if self.city != city_result:
+                self.city_en = None
+            if self.area != area_result:
+                self.area_en = None
+            self.province = province_result
+            self.city = city_result
+            self.area = area_result
 
     def transform_coordinate(self, coordinate_type, transformed_coordinate_type, force: bool = False):
         """
@@ -280,7 +303,7 @@ class Route:
         for point in tqdm(self.points, total=len(self.points), desc="Transform Coordinate", unit='point(s)'):
             point.transform_coordinate(self.coordinate_type, self.transformed_coordinate_type, force)
 
-    def set_area(self, area_gdf_list: list[GeoDataFrame], area_code_conn: sqlite3.Connection, force: bool = False):
+    def set_area(self, from_nominatim: bool = True, area_gdf_list: list[GeoDataFrame] = None, area_code_conn: sqlite3.Connection = None, force: bool = False):
         """
         填写行政区划。目前的做法是：加载各地区的 geojson 文件（area_gdf_list），判断点属于哪个地区的，得到编码，在给定的 SQLite 文件中找到对应编码的行政区划。
         :param area_gdf_list: 各地区的 geojson 文件转换为 GeoDataFrame 后的列表
@@ -290,13 +313,14 @@ class Route:
         """
         # list(map(lambda point: point.set_area(area_gdf_list, area_code_conn, force), self.points))
         for point in tqdm(self.points, total=len(self.points), desc="Set Area", unit='point(s)'):
-            point.set_area(area_gdf_list, area_code_conn, force)
+            point.set_area(from_nominatim=from_nominatim, area_gdf_list=area_gdf_list, area_code_conn=area_code_conn, force=force)
 
     @staticmethod
     def from_gpx_obj(
             gpx: gpxpy.gpx.GPX, track_index: int = 0, segment_index: int = 0,
             transform_coordinate: bool = False, coordinate_type: str = None, transformed_coordinate_type: str = None,
-            set_area: bool = False, area_gdf_list: list[GeoDataFrame] = None, area_code_conn: sqlite3.Connection = None
+            set_area: bool = False, from_nominatim: bool = True,
+            area_gdf_list: list[GeoDataFrame] = None, area_code_conn: sqlite3.Connection = None
     ) -> 'Route':
         """
         从 GPX 对象导入数据
@@ -330,14 +354,38 @@ class Route:
             else:
                 transformed_coordinate = (point.longitude, point.latitude)
             if set_area:
-                area_info = get_area_info(Point(point.longitude, point.latitude), area_gdf_list, area_code_conn)
-                province_result = area_info[0] if area_info is not None else None
-                city_result = area_info[1] if area_info is not None else None
-                area_result = area_info[2] if area_info is not None else None
+                if from_nominatim:
+                    area_info = get_point_info(point.latitude, point.longitude)
+                    province_result = area_info['province']
+                    city_result = area_info['city']
+                    area_result = area_info['area']
+                    road_num_result = area_info['road_num']
+                    road_name_result = area_info['road_name']
+                    province_en_result = area_info['province_en']
+                    city_en_result = area_info['city_en']
+                    area_en_result = area_info['area_en']
+                    road_name_en_result = area_info['road_name_en']
+                else:
+                    area_info = get_area_info(Point(point.longitude, point.latitude), area_gdf_list=area_gdf_list, area_code_conn=area_code_conn)
+                    province_result = area_info[0] if area_info is not None else None
+                    city_result = area_info[1] if area_info is not None else None
+                    area_result = area_info[2] if area_info is not None else None
+                    road_num_result = None
+                    road_name_result = None
+                    province_en_result = None
+                    city_en_result = None
+                    area_en_result = None
+                    road_name_en_result = None
             else:
                 province_result = None
                 city_result = None
                 area_result = None
+                road_num_result = None
+                road_name_result = None
+                province_en_result = None
+                city_en_result = None
+                area_en_result = None
+                road_name_en_result = None
             if index > 0:
                 # distance = calculate_distance(segment.points[index - 1], point)
                 prev_point = segment.points[index - 1]
@@ -369,6 +417,12 @@ class Route:
                 province=province_result,
                 city=city_result,
                 area=area_result,
+                road_num=road_num_result,
+                road_name=road_name_result,
+                province_en=province_en_result,
+                city_en=city_en_result,
+                area_en=area_en_result,
+                road_name_en=road_name_en_result
             ))
         return Route(
             points=ret_list,
@@ -391,7 +445,8 @@ class Route:
     def from_gpx_file(
             gpx_file_path: str, track_index: int = 0, segment_index: int = 0,
             transform_coordinate: bool = False, coordinate_type: str = None, transformed_coordinate_type: str = None,
-            set_area: bool = False, area_gdf_list: list[GeoDataFrame] = None, area_code_conn: sqlite3.Connection = None
+            set_area: bool = False, from_nominatim: bool = True,
+            area_gdf_list: list[GeoDataFrame] = None, area_code_conn: sqlite3.Connection = None
     ) -> 'Route':
         """
         从 GPX 文件导入数据
@@ -408,7 +463,7 @@ class Route:
         """
         with open(gpx_file_path, 'r') as gpx_file:
             gpx = gpxpy.parse(gpx_file)
-            return Route.from_gpx_obj(gpx, track_index, segment_index, transform_coordinate, coordinate_type, transformed_coordinate_type, set_area, area_gdf_list, area_code_conn)
+            return Route.from_gpx_obj(gpx, track_index, segment_index, transform_coordinate, coordinate_type, transformed_coordinate_type, set_area, from_nominatim=from_nominatim, area_gdf_list=area_gdf_list, area_code_conn=area_code_conn)
 
     @staticmethod
     def from_gpx_file_raw(gpx_file_path: str, track_index: int = 0, segment_index: int = 0) -> 'Route':
@@ -419,7 +474,7 @@ class Route:
         :param segment_index: segment 序号
         :return: Route
         """
-        return Route.from_gpx_file(gpx_file_path, track_index, segment_index, False, None, None, False, None, None)
+        return Route.from_gpx_file(gpx_file_path, track_index, segment_index, False, None, None, False, False, None, None)
 
     def to_gpx_obj(self, export_transformed_coordinate: bool = False) -> gpxpy.gpx.GPX:
         """
@@ -534,19 +589,20 @@ class Route:
 
 if __name__ == '__main__':
     test_route = Route.from_gpx_file(
-        '../../../test/gpx_sample/from_gps_logger.gpx',
+        # '../../../test/gpx_sample/from_gps_logger.gpx',
+        './test/gpx_sample/from_gps_logger.gpx',
         transform_coordinate=True, coordinate_type='wgs84', transformed_coordinate_type='gcj02',
-        set_area=True, area_gdf_list=GDFListHandler().list, area_code_conn=AreaCodeConnectHandler().conn
+        set_area=True, from_nominatim=True, area_gdf_list=GDFListHandler().list, area_code_conn=AreaCodeConnectHandler().conn
     )
-    test_route.to_gpx_file('../../../test/gpx_sample/from_gps_logger_to_gpx.gpx', export_transformed_coordinate=True)
-    test_route_2 = Route.from_gpx_file('../../../test/gpx_sample/from_gps_logger.gpx',
+    test_route.to_gpx_file('./test/gpx_sample/from_gps_logger_to_gpx.gpx', export_transformed_coordinate=True)
+    test_route_2 = Route.from_gpx_file('./test/gpx_sample/from_gps_logger.gpx',
         transform_coordinate=True, coordinate_type='wgs84', transformed_coordinate_type='gcj02',
-        set_area=True, area_gdf_list=GDFListHandler().list, area_code_conn=AreaCodeConnectHandler().conn
+        set_area=True, from_nominatim=True, area_gdf_list=GDFListHandler().list, area_code_conn=AreaCodeConnectHandler().conn
     )
-    test_route.to_json_file('../../../test/gpx_sample/from_gps_logger_to_json.json')
-    test_route_from_json = Route.from_json_file('../../../test/gpx_sample/from_gps_logger_to_json.json')
-    test_route.to_csv('../../../test/gpx_sample/from_gps_logger_to_csv.csv')
-    test_route_from_csv = Route.from_csv('../../../test/gpx_sample/from_gps_logger_to_csv.csv', coordinate_type='wgs84', transformed_coordinate_type='gcj02')
+    test_route.to_json_file('./test/gpx_sample/from_gps_logger_to_json.json')
+    test_route_from_json = Route.from_json_file('./test/gpx_sample/from_gps_logger_to_json.json')
+    test_route.to_csv('./test/gpx_sample/from_gps_logger_to_csv.csv')
+    test_route_from_csv = Route.from_csv('./test/gpx_sample/from_gps_logger_to_csv.csv', coordinate_type='wgs84', transformed_coordinate_type='gcj02')
     print(test_route.points[0])
     print(test_route_from_json.points[0])
     print(test_route_from_csv.points[0])
