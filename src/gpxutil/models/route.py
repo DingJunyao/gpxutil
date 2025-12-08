@@ -18,7 +18,11 @@ if CONFIG_HANDLER.config.area_info.gdf:
     from src.gpxutil.utils.db_connect import AreaCodeConnectHandler
     from src.gpxutil.utils.gdf_handler import GDFListHandler
 if CONFIG_HANDLER.config.area_info.nominatim:
-    from src.gpxutil.utils.nominatim import get_point_info
+    from src.gpxutil.utils.geocoding.nominatim import get_point_info as get_point_info_nominatim
+if CONFIG_HANDLER.config.area_info.baidu:
+    from src.gpxutil.utils.geocoding.baidu import get_point_info as get_point_info_baidu
+if CONFIG_HANDLER.config.area_info.amap:
+    from src.gpxutil.utils.geocoding.amap import get_point_info as get_point_info_amap
 from src.gpxutil.utils.route_util import calculate_bearing, get_area_info
 from src.gpxutil.utils.gpx_convert import convert_single_point
 
@@ -96,9 +100,12 @@ class RoutePoint:
     memo: Optional[str] = None
     """备注"""
 
-    def set_area(self, from_nominatim: bool = True, area_gdf_list: list[GeoDataFrame] = None, area_code_conn: sqlite3.Connection = None, force: bool = False):
+    def set_area(self, source: str = None, area_gdf_list: list[GeoDataFrame] = None, area_code_conn: sqlite3.Connection = None, force: bool = False):
         """
-        填写行政区划。目前的做法是：加载各地区的 geojson 文件（area_gdf_list），判断点属于哪个地区的，得到代码，在给定的 SQLite 文件中找到对应代码的行政区划。
+        填写行政区划。
+        如果从 GDF 获取数据，则加载各地区的 geojson 文件（area_gdf_list），判断点属于哪个地区的，得到代码，在给定的 SQLite 文件中找到对应代码的行政区划。
+        否则通过 API 获取。
+        :param source: 行政区划数据来源。默认从配置文件中读取来源。
         :param area_gdf_list: 各地区的 geojson 文件转换为 GeoDataFrame 后的列表
         :param area_code_conn: 存放行政区划代码关系的 SQLite 数据库连接
         :param force: 对已经填写地区的点，是否覆盖内容
@@ -106,8 +113,34 @@ class RoutePoint:
         """
         if self.province is not None and self.city is not None and self.area is not None and not force:
             return
-        if from_nominatim:
-            area_info = get_point_info(self.longitude, self.latitude)
+        if source is None:
+            source = CONFIG_HANDLER.config.area_info.use
+        match source:
+            case 'nominatim':
+                area_info = get_point_info_nominatim(self.longitude, self.latitude)
+            case 'baidu':
+                area_info = get_point_info_baidu(self.longitude, self.latitude)
+            case 'amap':
+                area_info = get_point_info_amap(self.longitude, self.latitude)
+            case 'gdf':
+                area_info = get_area_info(Point(self.longitude, self.latitude), area_gdf_list=area_gdf_list,
+                                          area_code_conn=area_code_conn)
+            case _:
+                raise ValueError('Invalid source: %s' % source)
+        if source == 'gdf':
+            province_result = area_info[0] if area_info is not None else None
+            city_result = area_info[1] if area_info is not None else None
+            area_result = area_info[2] if area_info is not None else None
+            if self.province != province_result:
+                self.province_en = None
+            if self.city != city_result:
+                self.city_en = None
+            if self.area != area_result:
+                self.area_en = None
+            self.province = province_result
+            self.city = city_result
+            self.area = area_result
+        else:
             province_result, city_result, area_result, town_result, road_name_result, road_num_result, province_en_result, city_en_result, area_en_result, town_en_result, road_name_en_result, memo_result = area_info
             if self.province != province_result:
                 self.province_en = None
@@ -127,20 +160,6 @@ class RoutePoint:
                 self.city_en = city_en_result
                 self.area_en = area_en_result
                 self.road_name_en = road_name_en_result
-        else:
-            area_info = get_area_info(Point(self.longitude, self.latitude), area_gdf_list = area_gdf_list, area_code_conn = area_code_conn)
-            province_result = area_info[0] if area_info is not None else None
-            city_result = area_info[1] if area_info is not None else None
-            area_result = area_info[2] if area_info is not None else None
-            if self.province != province_result:
-                self.province_en = None
-            if self.city != city_result:
-                self.city_en = None
-            if self.area != area_result:
-                self.area_en = None
-            self.province = province_result
-            self.city = city_result
-            self.area = area_result
 
     def transform_coordinate(self, coordinate_type, transformed_coordinate_type, force: bool = False):
         """
@@ -307,7 +326,7 @@ class Route:
         for point in tqdm(self.points, total=len(self.points), desc="Transform Coordinate", unit='point(s)'):
             point.transform_coordinate(self.coordinate_type, self.transformed_coordinate_type, force)
 
-    def set_area(self, from_nominatim: bool = True, area_gdf_list: list[GeoDataFrame] = None, area_code_conn: sqlite3.Connection = None, force: bool = False):
+    def set_area(self, source: str = None, area_gdf_list: list[GeoDataFrame] = None, area_code_conn: sqlite3.Connection = None, force: bool = False):
         """
         填写行政区划。目前的做法是：加载各地区的 geojson 文件（area_gdf_list），判断点属于哪个地区的，得到编码，在给定的 SQLite 文件中找到对应编码的行政区划。
         :param area_gdf_list: 各地区的 geojson 文件转换为 GeoDataFrame 后的列表
@@ -317,13 +336,13 @@ class Route:
         """
         # list(map(lambda point: point.set_area(area_gdf_list, area_code_conn, force), self.points))
         for point in tqdm(self.points, total=len(self.points), desc="Set Area", unit='point(s)'):
-            point.set_area(from_nominatim=from_nominatim, area_gdf_list=area_gdf_list, area_code_conn=area_code_conn, force=force)
+            point.set_area(source=source, area_gdf_list=area_gdf_list, area_code_conn=area_code_conn, force=force)
 
     @staticmethod
     def from_gpx_obj(
             gpx: gpxpy.gpx.GPX, track_index: int = 0, segment_index: int = 0,
             transform_coordinate: bool = False, coordinate_type: str = None, transformed_coordinate_type: str = None,
-            set_area: bool = False, from_nominatim: bool = True,
+            set_area: bool = False, source: str = True,
             area_gdf_list: list[GeoDataFrame] = None, area_code_conn: sqlite3.Connection = None
     ) -> 'Route':
         """
@@ -335,15 +354,17 @@ class Route:
         :param coordinate_type: 原坐标类型。transform_coordinate == True 时必填
         :param transformed_coordinate_type: 转换后坐标类型。transform_coordinate == True 时必填
         :param set_area: 是否填写行政区划
-        :param from_nominatim: 是否从 Nominatim 获取数据
+        :param source: 行政区划数据来源。默认从配置文件中读取来源。
         :param area_gdf_list: 各地区的 geojson 文件转换为 GeoDataFrame 后的列表。set_area == True，且不从 Nominatim 获取数据时必填
         :param area_code_conn: 存放行政区划代码关系的 SQLite 数据库连接。set_area == True，且不从 Nominatim 获取数据时必填
         :return: Route
         """
+        if source is None:
+            source = CONFIG_HANDLER.config.area_info.use
         if transform_coordinate is True and (coordinate_type is None or transformed_coordinate_type is None):
             raise AttributeError("transform_coordinate is True, but coordinate_type or transformed_coordinate_type is None")
-        if set_area is True and from_nominatim is False and (area_gdf_list is None or area_code_conn is None):
-            raise AttributeError("set_area is True and from_nominatim is False, but area_gdf_list or area_code_conn is None")
+        if set_area is True and source == 'gdf' and (area_gdf_list is None or area_code_conn is None):
+            raise AttributeError("set_area is True and source == 'gdf', but area_gdf_list or area_code_conn is None")
         segment = gpx.tracks[track_index].segments[segment_index]
         first_point = segment.points[0]
         course = 0
@@ -359,19 +380,19 @@ class Route:
             else:
                 transformed_coordinate = (point.longitude, point.latitude)
             if set_area:
-                if from_nominatim:
-                    area_info = get_point_info(point.latitude, point.longitude)
-                    province_result = area_info['province']
-                    city_result = area_info['city']
-                    area_result = area_info['area']
-                    road_num_result = area_info['road_num']
-                    road_name_result = area_info['road_name']
-                    province_en_result = area_info['province_en']
-                    city_en_result = area_info['city_en']
-                    area_en_result = area_info['area_en']
-                    road_name_en_result = area_info['road_name_en']
-                else:
-                    area_info = get_area_info(Point(point.longitude, point.latitude), area_gdf_list=area_gdf_list, area_code_conn=area_code_conn)
+                match source:
+                    case 'nominatim':
+                        area_info = get_point_info_nominatim(point.latitude, point.longitude)
+                    case 'baidu':
+                        area_info = get_point_info_baidu(point.latitude, point.longitude)
+                    case 'amap':
+                        area_info = get_point_info_amap(point.latitude, point.longitude)
+                    case 'gdf':
+                        area_info = get_area_info(Point(point.longitude, point.latitude), area_gdf_list=area_gdf_list,
+                                                  area_code_conn=area_code_conn)
+                    case _:
+                        raise ValueError('Invalid source: %s' % source)
+                if source == 'gdf':
                     province_result = area_info[0] if area_info is not None else None
                     city_result = area_info[1] if area_info is not None else None
                     area_result = area_info[2] if area_info is not None else None
@@ -381,6 +402,16 @@ class Route:
                     city_en_result = None
                     area_en_result = None
                     road_name_en_result = None
+                else:
+                    province_result = area_info['province']
+                    city_result = area_info['city']
+                    area_result = area_info['area']
+                    road_num_result = area_info['road_num']
+                    road_name_result = area_info['road_name']
+                    province_en_result = area_info['province_en']
+                    city_en_result = area_info['city_en']
+                    area_en_result = area_info['area_en']
+                    road_name_en_result = area_info['road_name_en']
             else:
                 province_result = None
                 city_result = None
@@ -450,7 +481,7 @@ class Route:
     def from_gpx_file(
             gpx_file_path: str, track_index: int = 0, segment_index: int = 0,
             transform_coordinate: bool = False, coordinate_type: str = None, transformed_coordinate_type: str = None,
-            set_area: bool = False, from_nominatim: bool = True,
+            set_area: bool = False, source: str = None,
             area_gdf_list: list[GeoDataFrame] = None, area_code_conn: sqlite3.Connection = None
     ) -> 'Route':
         """
@@ -462,14 +493,14 @@ class Route:
         :param coordinate_type: 原坐标类型。transform_coordinate == True 时必填
         :param transformed_coordinate_type: 转换后坐标类型。transform_coordinate == True 时必填
         :param set_area: 是否填写行政区划
-        :param from_nominatim: 是否从 Nominatim 获取数据
+        :param source: 行政区划数据来源。默认从配置文件中读取来源。
         :param area_gdf_list: 各地区的 geojson 文件转换为 GeoDataFrame 后的列表。set_area == True，且不从 Nominatim 获取数据时必填
         :param area_code_conn: 存放行政区划代码关系的 SQLite 数据库连接。set_area == True，且不从 Nominatim 获取数据时必填
         :return: Route
         """
         with open(gpx_file_path, 'r') as gpx_file:
             gpx = gpxpy.parse(gpx_file)
-            return Route.from_gpx_obj(gpx, track_index, segment_index, transform_coordinate, coordinate_type, transformed_coordinate_type, set_area, from_nominatim=from_nominatim, area_gdf_list=area_gdf_list, area_code_conn=area_code_conn)
+            return Route.from_gpx_obj(gpx, track_index, segment_index, transform_coordinate, coordinate_type, transformed_coordinate_type, set_area, source=source, area_gdf_list=area_gdf_list, area_code_conn=area_code_conn)
 
     @staticmethod
     def from_gpx_file_raw(gpx_file_path: str, track_index: int = 0, segment_index: int = 0) -> 'Route':
@@ -594,32 +625,40 @@ class Route:
         )
 
 if __name__ == '__main__':
+    # # test_route = Route.from_gpx_file(
+    # #     # '../../../test/gpx_sample/from_gps_logger.gpx',
+    # #     './test/gpx_sample/from_gps_logger.gpx',
+    # #     transform_coordinate=True, coordinate_type='wgs84', transformed_coordinate_type='gcj02',
+    # #     set_area=True, from_nominatim=True, area_gdf_list=GDFListHandler().list, area_code_conn=AreaCodeConnectHandler().conn
+    # # )
     # test_route = Route.from_gpx_file(
     #     # '../../../test/gpx_sample/from_gps_logger.gpx',
     #     './test/gpx_sample/from_gps_logger.gpx',
     #     transform_coordinate=True, coordinate_type='wgs84', transformed_coordinate_type='gcj02',
-    #     set_area=True, from_nominatim=True, area_gdf_list=GDFListHandler().list, area_code_conn=AreaCodeConnectHandler().conn
+    #     set_area=True
     # )
+    # test_route.to_gpx_file('./test/gpx_sample/from_gps_logger_to_gpx.gpx', export_transformed_coordinate=True)
+    # # test_route_2 = Route.from_gpx_file('./test/gpx_sample/from_gps_logger.gpx',
+    # #     transform_coordinate=True, coordinate_type='wgs84', transformed_coordinate_type='gcj02',
+    # #     set_area=True, from_nominatim=True, area_gdf_list=GDFListHandler().list, area_code_conn=AreaCodeConnectHandler().conn
+    # # )
+    # test_route_2 = Route.from_gpx_file('./test/gpx_sample/from_gps_logger.gpx',
+    #                                    transform_coordinate=True, coordinate_type='wgs84',
+    #                                    transformed_coordinate_type='gcj02',
+    #                                    set_area=True
+    #                                    )
+    # test_route.to_json_file('./test/gpx_sample/from_gps_logger_to_json.json')
+    # test_route_from_json = Route.from_json_file('./test/gpx_sample/from_gps_logger_to_json.json')
+    # test_route.to_csv('./test/gpx_sample/from_gps_logger_to_csv.csv')
+    # test_route_from_csv = Route.from_csv('./test/gpx_sample/from_gps_logger_to_csv.csv', coordinate_type='wgs84', transformed_coordinate_type='gcj02')
+    # print(test_route.points[0])
+    # print(test_route_from_json.points[0])
+    # print(test_route_from_csv.points[0])
+
     test_route = Route.from_gpx_file(
         # '../../../test/gpx_sample/from_gps_logger.gpx',
         './test/gpx_sample/from_gps_logger.gpx',
         transform_coordinate=True, coordinate_type='wgs84', transformed_coordinate_type='gcj02',
-        set_area=True, from_nominatim=True
+        set_area=True
     )
-    test_route.to_gpx_file('./test/gpx_sample/from_gps_logger_to_gpx.gpx', export_transformed_coordinate=True)
-    # test_route_2 = Route.from_gpx_file('./test/gpx_sample/from_gps_logger.gpx',
-    #     transform_coordinate=True, coordinate_type='wgs84', transformed_coordinate_type='gcj02',
-    #     set_area=True, from_nominatim=True, area_gdf_list=GDFListHandler().list, area_code_conn=AreaCodeConnectHandler().conn
-    # )
-    test_route_2 = Route.from_gpx_file('./test/gpx_sample/from_gps_logger.gpx',
-                                       transform_coordinate=True, coordinate_type='wgs84',
-                                       transformed_coordinate_type='gcj02',
-                                       set_area=True, from_nominatim=True
-                                       )
-    test_route.to_json_file('./test/gpx_sample/from_gps_logger_to_json.json')
-    test_route_from_json = Route.from_json_file('./test/gpx_sample/from_gps_logger_to_json.json')
-    test_route.to_csv('./test/gpx_sample/from_gps_logger_to_csv.csv')
-    test_route_from_csv = Route.from_csv('./test/gpx_sample/from_gps_logger_to_csv.csv', coordinate_type='wgs84', transformed_coordinate_type='gcj02')
     print(test_route.points[0])
-    print(test_route_from_json.points[0])
-    print(test_route_from_csv.points[0])

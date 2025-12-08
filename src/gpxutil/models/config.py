@@ -13,6 +13,17 @@ class GdfConfig:
     area_info_sqlite_path: str
 
 @dataclass
+class BaiduConfig:
+    ak: str
+    freq: int
+    get_en_result: bool
+
+@dataclass
+class AmapConfig:
+    ak: str
+    freq: int
+
+@dataclass
 class PositionConfig:
     """记录左上角位置"""
     x: float
@@ -146,9 +157,11 @@ class TrafficSignConfig:
 class AreaInfoConfig:
     # gdf_dir_path: str
     # area_info_sqlite_path: str
-    use: Literal['nominatim', 'gdf']
+    use: Literal['nominatim', 'gdf', 'baidu', 'amap']
     nominatim: NominatimConfig = None
     gdf: GdfConfig = None
+    baidu: BaiduConfig = None
+    amap: AmapConfig = None
 
 @dataclass
 class VideoInfoLayerFontPathConfig:

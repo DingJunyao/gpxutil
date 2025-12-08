@@ -35,23 +35,62 @@ class ConfigHandler:
 
     @staticmethod
     def parse_config(config_raw):
-        if config_raw['area_info']['use'] == 'nominatim':
-            nominatim = NominatimConfig(
-                url=config_raw['area_info']['nominatim']['url']
-            )
-            area_info = AreaInfoConfig(
-                use='nominatim',
-                nominatim=nominatim
-            )
-        else:
-            gdf = GdfConfig(
-                gdf_dir_path=config_raw['area_info']['gdf_dir_path'],
-                area_info_sqlite_path=config_raw['area_info']['area_info_sqlite_path']
-            )
-            area_info = AreaInfoConfig(
-                use='gdf',
-                gdf=gdf
-            )
+        match config_raw['area_info']['use']:
+            case 'nominatim':
+                nominatim = NominatimConfig(
+                    url=config_raw['area_info']['nominatim']['url']
+                )
+                area_info = AreaInfoConfig(
+                    use='nominatim',
+                    nominatim=nominatim
+                )
+            case 'gdf':
+                gdf = GdfConfig(
+                    gdf_dir_path=config_raw['area_info']['gdf_dir_path'],
+                    area_info_sqlite_path=config_raw['area_info']['area_info_sqlite_path']
+                )
+                area_info = AreaInfoConfig(
+                    use='gdf',
+                    gdf=gdf
+                )
+            case 'baidu':
+                baidu = BaiduConfig(
+                    ak=config_raw['area_info']['baidu']['ak'],
+                    freq=config_raw['area_info']['baidu']['freq'],
+                    get_en_result=config_raw['area_info']['baidu']['get_en_result']
+                )
+                area_info = AreaInfoConfig(
+                    use='baidu',
+                    baidu=baidu
+                )
+            case 'amap':
+                amap = AmapConfig(
+                    ak=config_raw['area_info']['amap']['ak'],
+                    freq=config_raw['area_info']['amap']['freq']
+                )
+                area_info = AreaInfoConfig(
+                    use='amap',
+                    amap=amap
+                )
+            case _:
+                raise ValueError('area_info.use in config is invalid')
+        # if config_raw['area_info']['use'] == 'nominatim':
+        #     nominatim = NominatimConfig(
+        #         url=config_raw['area_info']['nominatim']['url']
+        #     )
+        #     area_info = AreaInfoConfig(
+        #         use='nominatim',
+        #         nominatim=nominatim
+        #     )
+        # else:
+        #     gdf = GdfConfig(
+        #         gdf_dir_path=config_raw['area_info']['gdf_dir_path'],
+        #         area_info_sqlite_path=config_raw['area_info']['area_info_sqlite_path']
+        #     )
+        #     area_info = AreaInfoConfig(
+        #         use='gdf',
+        #         gdf=gdf
+        #     )
 
         color = ColorConfig(
             red=config_raw['traffic_sign']['color']['red'],

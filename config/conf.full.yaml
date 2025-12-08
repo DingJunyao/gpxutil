@@ -1,6 +1,8 @@
 area_info:
   # nominatim: 部署麻烦，占用空间大（中国大陆的数据，下载解压处理后会占用 126 GB，初次部署要花费 20 小时）；但能够读取行政区划的英文（虽然只有县级的有行政级别名称），以及道路信息（虽然不稳定；一些道路能够读取英文）
-  # gdf: 只能够读取行政区划的中文信息
+  # gdf: 只能够读取行政区划的中文信息，且只能精确到县级。不支持英文。
+  # baidu：百度地图 API，配额小（个人开发者每日 300 次 API 调用，每秒一次点位记录只能处理五分钟的）
+  # amap：高德地图 API，配额比百度地图的多（个人开发者每月 150000 次 API 调用），但个人版不支持英文
   use: nominatim  # nominatim / gdf
   nominatim:
     # nomination API 的开头，结尾不带斜杠
@@ -8,6 +10,16 @@ area_info:
   gdf:
     gdf_dir_path: asset/area_geojson
     area_info_sqlite_path: asset/area_code.sqlite
+  baidu:
+    ak:
+    # API 频率限制，填写并发(次/秒)
+    freq: 3
+    # 是否获取英文名。如果获取，则一次执行两次 API 请求。能够获取到行政区划的英文名（不包括行政级别名称），道路则不一定能够取到
+    get_en_result: true
+  amap:
+    ak:
+    # API 频率限制，填写并发量上限(次/秒)
+    freq: 3
 
 traffic_sign:
   color:

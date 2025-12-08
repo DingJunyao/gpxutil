@@ -110,4 +110,5 @@ def convert_gpx_to_file(
         dom_tree.writexml(f, encoding='utf-8')
 
 if __name__ == '__main__':
-    convert_gpx_to_file(r"E:\project\recorded\202504旅游轨迹\20250402083731.gpx", 'gcj.gpx', original_coordinate_type='wgs84', transformed_coordinate_type='gcj02')
+    # convert_gpx_to_file(r"E:\project\recorded\202504旅游轨迹\20250402083731.gpx", 'gcj.gpx', original_coordinate_type='wgs84', transformed_coordinate_type='gcj02')
+    print(convert_single_point(116.13733801, 29.74763688, 'wgs84', 'gcj02'))
