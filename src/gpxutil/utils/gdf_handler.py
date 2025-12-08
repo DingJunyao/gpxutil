@@ -3,11 +3,14 @@ import threading
 
 import geopandas as gpd
 from geopandas import GeoDataFrame
+from loguru import logger
 from tqdm import tqdm
 
 from src.gpxutil.core.config import CONFIG_HANDLER
-
-GEOJSON_DIR = CONFIG_HANDLER.config.area_info.gdf_dir_path
+try:
+    GEOJSON_DIR = CONFIG_HANDLER.config.area_info.gdf.gdf_dir_path
+except Exception as e:
+    logger.warning(e)
 
 def load_area_gdf_list(geojson_dir: str) -> list[GeoDataFrame]:
     gdf_list = []
@@ -28,7 +31,11 @@ class GDFListHandler:
             if geojson_dir is not None:
                 self.geojson_dir = geojson_dir
             else:
-                self.geojson_dir = GEOJSON_DIR
+                if CONFIG_HANDLER.config.area_info.gdf is None:
+                    logger.warning("GEOJSON_DIR is not set in config.yaml")
+                    return
+                else:
+                    self.geojson_dir = GEOJSON_DIR
             self.list = self.load()
             GDFListHandler._initialized = True  # 标记为已初始化
 

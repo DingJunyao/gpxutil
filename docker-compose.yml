@@ -1,0 +1,16 @@
+version: '3'
+services:
+  nominatim:
+    image: 'mediagis/nominatim:5.2'
+    ports:
+      - '8080:8080'
+    volumes:
+      - './ext/nominatim/data:/var/lib/postgresql/16/main'
+      - './ext/nominatim/flatnode:/nominatim/flatnode'
+    environment:
+      PBF_URL: 'https://download.geofabrik.de/asia/china-latest.osm.pbf'
+      REPLICATION_URL: 'https://download.geofabrik.de/asia/china-updates/'
+      IMPORT_WIKIPEDIA: 'false'
+      NOMINATIM_PASSWORD: very_secure_password
+    container_name: nominatim
+    shm_size: 1gb

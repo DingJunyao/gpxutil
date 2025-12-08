@@ -35,10 +35,23 @@ class ConfigHandler:
 
     @staticmethod
     def parse_config(config_raw):
-        area_info = AreaInfoConfig(
-            gdf_dir_path=config_raw['area_info']['gdf_dir_path'],
-            area_info_sqlite_path=config_raw['area_info']['area_info_sqlite_path']
-        )
+        if config_raw['area_info']['use'] == 'nominatim':
+            nominatim = NominatimConfig(
+                url=config_raw['area_info']['nominatim']['url']
+            )
+            area_info = AreaInfoConfig(
+                use='nominatim',
+                nominatim=nominatim
+            )
+        else:
+            gdf = GdfConfig(
+                gdf_dir_path=config_raw['area_info']['gdf_dir_path'],
+                area_info_sqlite_path=config_raw['area_info']['area_info_sqlite_path']
+            )
+            area_info = AreaInfoConfig(
+                use='gdf',
+                gdf=gdf
+            )
 
         color = ColorConfig(
             red=config_raw['traffic_sign']['color']['red'],

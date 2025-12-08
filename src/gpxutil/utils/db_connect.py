@@ -56,5 +56,8 @@ class DbConnectHandler:
         return sqlite3.connect(self.database)
 
 class AreaCodeConnectHandler(DbConnectHandler):
-    def __init__(self, database=CONFIG_HANDLER.config.area_info.area_info_sqlite_path):
-        super().__init__(database)
+    if CONFIG_HANDLER.config.area_info.gdf is not None:
+        def __init__(self, database=CONFIG_HANDLER.config.area_info.gdf.area_info_sqlite_path):
+            super().__init__(database)
+    else:
+        logger.warning('No gdf config')

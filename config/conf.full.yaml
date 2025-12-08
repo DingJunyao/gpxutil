@@ -1,6 +1,13 @@
 area_info:
-  gdf_dir_path: asset/area_geojson
-  area_info_sqlite_path: asset/area_code.sqlite
+  # nominatim: 部署麻烦，占用空间大（中国大陆的数据，下载解压处理后会占用 126 GB，初次部署要花费 20 小时）；但能够读取行政区划的英文（虽然只有县级的有行政级别名称），以及道路信息（虽然不稳定；一些道路能够读取英文）
+  # gdf: 只能够读取行政区划的中文信息
+  use: nominatim  # nominatim / gdf
+  nominatim:
+    # nomination API 的开头，结尾不带斜杠
+    url: https://nominatim.openstreetmap.org/search
+  gdf:
+    gdf_dir_path: asset/area_geojson
+    area_info_sqlite_path: asset/area_code.sqlite
 
 traffic_sign:
   color:

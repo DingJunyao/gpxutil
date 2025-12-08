@@ -9,12 +9,16 @@ from geopandas import GeoDataFrame
 from shapely.geometry.point import Point
 from tqdm import tqdm
 
+from src.gpxutil.core.config import CONFIG_HANDLER
 from src.gpxutil.utils import csv_util
 from src.gpxutil.utils.data_type_processor import process_or_none, float_or_none
 from src.gpxutil.utils.datetime_util import datetime_yyyymmdd_slash_time_microsecond_tz
-from src.gpxutil.utils.db_connect import AreaCodeConnectHandler
-from src.gpxutil.utils.gdf_handler import GDFListHandler
-from src.gpxutil.utils.nominatim import get_point_info
+
+if CONFIG_HANDLER.config.area_info.gdf:
+    from src.gpxutil.utils.db_connect import AreaCodeConnectHandler
+    from src.gpxutil.utils.gdf_handler import GDFListHandler
+if CONFIG_HANDLER.config.area_info.nominatim:
+    from src.gpxutil.utils.nominatim import get_point_info
 from src.gpxutil.utils.route_util import calculate_bearing, get_area_info
 from src.gpxutil.utils.gpx_convert import convert_single_point
 
@@ -331,14 +335,15 @@ class Route:
         :param coordinate_type: 原坐标类型。transform_coordinate == True 时必填
         :param transformed_coordinate_type: 转换后坐标类型。transform_coordinate == True 时必填
         :param set_area: 是否填写行政区划
-        :param area_gdf_list: 各地区的 geojson 文件转换为 GeoDataFrame 后的列表。set_area == True 时必填
-        :param area_code_conn: 存放行政区划代码关系的 SQLite 数据库连接。set_area == True 时必填
+        :param from_nominatim: 是否从 Nominatim 获取数据
+        :param area_gdf_list: 各地区的 geojson 文件转换为 GeoDataFrame 后的列表。set_area == True，且不从 Nominatim 获取数据时必填
+        :param area_code_conn: 存放行政区划代码关系的 SQLite 数据库连接。set_area == True，且不从 Nominatim 获取数据时必填
         :return: Route
         """
         if transform_coordinate is True and (coordinate_type is None or transformed_coordinate_type is None):
             raise AttributeError("transform_coordinate is True, but coordinate_type or transformed_coordinate_type is None")
-        if set_area is True and (area_gdf_list is None or area_code_conn is None):
-            raise AttributeError("set_area is True, but area_gdf_list or area_code_conn is None")
+        if set_area is True and from_nominatim is False and (area_gdf_list is None or area_code_conn is None):
+            raise AttributeError("set_area is True and from_nominatim is False, but area_gdf_list or area_code_conn is None")
         segment = gpx.tracks[track_index].segments[segment_index]
         first_point = segment.points[0]
         course = 0
@@ -457,8 +462,9 @@ class Route:
         :param coordinate_type: 原坐标类型。transform_coordinate == True 时必填
         :param transformed_coordinate_type: 转换后坐标类型。transform_coordinate == True 时必填
         :param set_area: 是否填写行政区划
-        :param area_gdf_list: 各地区的 geojson 文件转换为 GeoDataFrame 后的列表。set_area == True 时必填
-        :param area_code_conn: 存放行政区划代码关系的 SQLite 数据库连接。set_area == True 时必填
+        :param from_nominatim: 是否从 Nominatim 获取数据
+        :param area_gdf_list: 各地区的 geojson 文件转换为 GeoDataFrame 后的列表。set_area == True，且不从 Nominatim 获取数据时必填
+        :param area_code_conn: 存放行政区划代码关系的 SQLite 数据库连接。set_area == True，且不从 Nominatim 获取数据时必填
         :return: Route
         """
         with open(gpx_file_path, 'r') as gpx_file:
@@ -588,17 +594,28 @@ class Route:
         )
 
 if __name__ == '__main__':
+    # test_route = Route.from_gpx_file(
+    #     # '../../../test/gpx_sample/from_gps_logger.gpx',
+    #     './test/gpx_sample/from_gps_logger.gpx',
+    #     transform_coordinate=True, coordinate_type='wgs84', transformed_coordinate_type='gcj02',
+    #     set_area=True, from_nominatim=True, area_gdf_list=GDFListHandler().list, area_code_conn=AreaCodeConnectHandler().conn
+    # )
     test_route = Route.from_gpx_file(
         # '../../../test/gpx_sample/from_gps_logger.gpx',
         './test/gpx_sample/from_gps_logger.gpx',
         transform_coordinate=True, coordinate_type='wgs84', transformed_coordinate_type='gcj02',
-        set_area=True, from_nominatim=True, area_gdf_list=GDFListHandler().list, area_code_conn=AreaCodeConnectHandler().conn
+        set_area=True, from_nominatim=True
     )
     test_route.to_gpx_file('./test/gpx_sample/from_gps_logger_to_gpx.gpx', export_transformed_coordinate=True)
+    # test_route_2 = Route.from_gpx_file('./test/gpx_sample/from_gps_logger.gpx',
+    #     transform_coordinate=True, coordinate_type='wgs84', transformed_coordinate_type='gcj02',
+    #     set_area=True, from_nominatim=True, area_gdf_list=GDFListHandler().list, area_code_conn=AreaCodeConnectHandler().conn
+    # )
     test_route_2 = Route.from_gpx_file('./test/gpx_sample/from_gps_logger.gpx',
-        transform_coordinate=True, coordinate_type='wgs84', transformed_coordinate_type='gcj02',
-        set_area=True, from_nominatim=True, area_gdf_list=GDFListHandler().list, area_code_conn=AreaCodeConnectHandler().conn
-    )
+                                       transform_coordinate=True, coordinate_type='wgs84',
+                                       transformed_coordinate_type='gcj02',
+                                       set_area=True, from_nominatim=True
+                                       )
     test_route.to_json_file('./test/gpx_sample/from_gps_logger_to_json.json')
     test_route_from_json = Route.from_json_file('./test/gpx_sample/from_gps_logger_to_json.json')
     test_route.to_csv('./test/gpx_sample/from_gps_logger_to_csv.csv')

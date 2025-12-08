@@ -1,5 +1,16 @@
 from dataclasses import dataclass, field
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Literal
+
+
+@dataclass
+class NominatimConfig:
+    """Nominatim API 配置"""
+    url: str
+
+@dataclass
+class GdfConfig:
+    gdf_dir_path: str
+    area_info_sqlite_path: str
 
 @dataclass
 class PositionConfig:
@@ -133,8 +144,11 @@ class TrafficSignConfig:
 
 @dataclass
 class AreaInfoConfig:
-    gdf_dir_path: str
-    area_info_sqlite_path: str
+    # gdf_dir_path: str
+    # area_info_sqlite_path: str
+    use: Literal['nominatim', 'gdf']
+    nominatim: NominatimConfig = None
+    gdf: GdfConfig = None
 
 @dataclass
 class VideoInfoLayerFontPathConfig:

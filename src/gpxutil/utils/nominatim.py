@@ -1,6 +1,12 @@
 import requests
+from loguru import logger
 
-HOST = 'http://localhost:8080'
+from src.gpxutil.core.config import CONFIG_HANDLER
+
+try:
+    HOST = CONFIG_HANDLER.config.area_info.nominatim.url
+except Exception as e:
+    logger.warning(e)
 
 def reverse(lat, lon, accept_language: str = 'zh-CN'):
     url = HOST + '/reverse'
@@ -54,7 +60,7 @@ def get_point_info(lat, lon):
             if 'ref' in road_detail['names']:
                 road_num = road_detail['names']['ref']
     except Exception as e:
-        print(lat, lon, rev['features'][0]['properties']['geocoding'])
+        logger.warning('Some info of (%s, %s) is empty. API response: %s' % (lat, lon, rev['features'][0]['properties']['geocoding']))
         memo = str(e)
     return {
         'province': province,
