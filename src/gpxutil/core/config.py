@@ -46,8 +46,8 @@ class ConfigHandler:
                 )
             case 'gdf':
                 gdf = GdfConfig(
-                    gdf_dir_path=config_raw['area_info']['gdf_dir_path'],
-                    area_info_sqlite_path=config_raw['area_info']['area_info_sqlite_path']
+                    gdf_dir_path=config_raw['area_info']['gdf']['gdf_dir_path'],
+                    area_info_sqlite_path=config_raw['area_info']['gdf']['area_info_sqlite_path']
                 )
                 area_info = AreaInfoConfig(
                     use='gdf',
