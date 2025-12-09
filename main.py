@@ -4,6 +4,8 @@ from geopandas import GeoDataFrame
 
 from src.gpxutil.core.config import CONFIG_HANDLER
 from src.gpxutil.models.route import Route
+from src.gpxutil.utils.create_pic import generate_pic_from_csv
+
 if CONFIG_HANDLER.config.area_info.gdf:
     from src.gpxutil.utils.db_connect import AreaCodeConnectHandler
     from src.gpxutil.utils.gdf_handler import GDFListHandler
@@ -42,11 +44,11 @@ def transform_route_info_from_gpx_file(
     # route.to_json_file('./test/gpx_sample/from_gps_logger_to_json.json')
 
 if __name__ == '__main__':
-    transform_route_info_from_gpx_file(
-        './test/gpx_sample/from_gps_logger.gpx',
-        './test/gpx_sample/from_gps_logger_to_gpx.gpx',
-        './test/gpx_sample/from_gps_logger_to_csv_amap.csv'
-    )
+    input_gpx_file_path = r'E:\project\recorded\route\gcj\九江-景德镇.gpx'
+    output_transformed_gpx_file_path = r'E:\project\recorded\route\gcj\九江-景德镇-gcj02.gpx'
+    output_csv_file_path = r'E:\project\recorded\route\gcj\九江-景德镇.csv'
+    output_overlay_dir = r'E:\project\recorded\20250409-九江-景德镇\overlay\2'
+    transform_route_info_from_gpx_file(input_gpx_file_path, output_transformed_gpx_file_path, output_csv_file_path)
     """
     gdf:
         导入 353 条边界数据，13s
@@ -60,3 +62,5 @@ if __name__ == '__main__':
     amap：
         处理 555 条 GPX 点，4 min 34 s
     """
+    input("核对 CSV 文件是否正确后，按任意键继续……")
+    generate_pic_from_csv(output_csv_file_path, out_dir=output_overlay_dir)
