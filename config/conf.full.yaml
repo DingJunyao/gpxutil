@@ -1,0 +1,267 @@
+area_info:
+  # nominatim: 部署麻烦，占用空间大（中国大陆的数据，下载解压处理后会占用 126 GB，初次部署要花费 20 小时）；但能够读取行政区划的英文（虽然只有县级的有行政级别名称），以及道路信息（虽然不稳定；一些道路能够读取英文）
+  # gdf: 只能够读取行政区划的中文信息，且只能精确到县级。不支持英文。
+  # baidu：百度地图 API，配额小（个人开发者每日 300 次 API 调用，每秒一次点位记录只能处理五分钟的）
+  # amap：高德地图 API，配额比百度地图的多（个人开发者每月 150000 次 API 调用），但个人版不支持英文
+  use: nominatim  # nominatim / gdf
+  nominatim:
+    # nomination API 的开头，结尾不带斜杠
+    url: https://nominatim.openstreetmap.org/search
+  gdf:
+    gdf_dir_path: asset/area_geojson
+    area_info_sqlite_path: asset/area_code.sqlite
+  baidu:
+    ak:
+    # API 频率限制，填写并发(次/秒)
+    freq: 3
+    # 是否获取英文名。如果获取，则一次执行两次 API 请求。能够获取到行政区划的英文名（不包括行政级别名称），道路则不一定能够取到
+    get_en_result: true
+  amap:
+    ak:
+    # API 频率限制，填写并发量上限(次/秒)
+    freq: 3
+
+traffic_sign:
+  color:
+    red: '#B5273C'
+    white: '#FFFFFF'
+    yellow: '#FFCD00'
+    black: '#000000'
+    green: '#006E55'
+  font_path:
+    A: asset/font/SourceHanSansSC-Bold.otf
+    B: asset/font/jtbz_B.ttf
+    C: asset/font/jtbz_C.ttf
+  way_num_pad:
+    template: asset/template_path/way_num.svg
+    width: 400
+    height: 200
+    word:
+      start_x: 50
+      start_y: 50
+      width: 300
+      height: 100
+    color:
+      background:
+        national: red
+        province: yellow
+        other: white
+      stroke:
+        national: white
+        province: black
+        other: black
+  expwy_code_sign:
+    color:
+      background:
+        banner:
+          national: red
+          province: yellow
+        main: green
+      stroke:
+        banner:
+          national: white
+          province: black
+        main: white
+    without_name:
+      num_1:
+        template: asset/template_path/expwy_1.svg
+        code:
+          start_x: 150
+          start_y: 370
+          width: 700
+          height: 450
+        banner_text:
+          national:
+            start_x: 150
+            start_y: 80
+            width: 700
+            height: 100
+          province:
+            start_x: 250
+            start_y: 80
+            width: 500
+            height: 100
+      num_2:
+        template: asset/template_path/expwy_2.svg
+        code:
+          start_x: 90
+          start_y: 370
+          width: 1070
+          height: 450
+        banner_text:
+          national:
+            start_x: 275
+            start_y: 80
+            width: 700
+            height: 100
+          province:
+            start_x: 359.1
+            start_y: 80
+            width: 500
+            height: 100
+      num_4:
+        template: asset/template_path/expwy_4.svg
+        code:
+          big:
+            start_x: 90
+            start_y: 370
+            width: 1070
+            height: 450
+          small:
+            start_x: 1220
+            start_y: 520
+            width: 390
+            height: 300
+        banner_text:
+          national:
+            start_x: 355
+            start_y: 80
+            width: 990
+            height: 100
+          province:
+            start_x: 355
+            start_y: 80
+            width: 990
+            height: 100
+    with_name:
+      num_1:
+        template: asset/template_path/expwy_1_name.svg
+        code:
+          start_x: 150
+          start_y: 340
+          width: 700
+          height: 450
+        name:
+          start_x: 100
+          start_y: 860
+          width: 800
+          height: 200
+        banner_text:
+          national:
+            start_x: 150
+            start_y: 110
+            width: 700
+            height: 100
+          province:
+            start_x: 250
+            start_y: 110
+            width: 500
+            height: 100
+      num_2:
+        template: asset/template_path/expwy_2_name.svg
+        code:
+          start_x: 90
+          start_y: 340
+          width: 1070
+          height: 450
+        name:
+          start_x: 150
+          start_y: 860
+          width: 950
+          height: 200
+        banner_text:
+          national:
+            start_x: 275
+            start_y: 110
+            width: 700
+            height: 100
+          province:
+            start_x: 359.1
+            start_y: 110
+            width: 500
+            height: 100
+      num_4:
+        template: asset/template_path/expwy_4_name.svg
+        code:
+          big:
+            start_x: 90
+            start_y: 340
+            width: 1070
+            height: 450
+          small:
+            start_x: 1220
+            start_y: 490
+            width: 390
+            height: 300
+        name:
+          start_x: 150
+          start_y: 860
+          width: 1400
+          height: 200
+        banner_text:
+          national:
+            start_x: 355
+            start_y: 110
+            width: 990
+            height: 100
+          province:
+            start_x: 355
+            start_y: 110
+            width: 990
+            height: 100
+
+video_info_layer:
+  font_path:
+    chinese: asset/font/SourceHanSans_static_super_otc.ttc
+    chinese_index: 12
+    english: asset/font/SourceSans3-Regular.otf
+  img_path:
+    compass: asset/compass.svg
+    route_time_sep: asset/route_time_sep.svg\
+  frame:
+    width: 3840
+    height: 2160
+    dpi: 72
+    min_space: 48
+    area:
+      chinese:
+        x: 191.8085
+        y: 1924
+      english:
+        x: 192
+        y: 1997
+    road:
+      x: 1464
+      middle_y: 1988
+      sign:
+        width: 126
+        height: 128
+        space: 24
+        char_space: 48
+      chinese_y: 1924
+      english_y: 1997
+    compass:
+      x: 2432
+      y: 1924
+    route_time:
+      used:
+        route:
+          right_x: 2978
+          y: 1924
+        time:
+          right_x: 2978
+          y: 1997
+      sep:
+        x: 3002
+        y: 1924
+      remain:
+        route:
+          x: 3117
+          y: 1924
+        time:
+          x: 3117
+          y: 1997
+    altitude:
+      num:
+        right_x: 3483
+        y: 1924
+      unit:
+        right_x: 3483
+        y: 1997
+    speed:
+      num:
+        right_x: 3649
+        y: 1924
+      unit:
+        right_x: 3649
+        y: 1997

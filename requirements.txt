@@ -1,4 +1,10 @@
 tqdm
+pyyaml
+loguru
+
+# GUI
+pyside6
+# PyQt-Fluent-Widgets[full]
 
 # gpx2csv.py
 gpxpy

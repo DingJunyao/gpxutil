@@ -1,0 +1,3 @@
+[submodule "vendor/coordTransform_py"]
+	path = vendor/coordTransform_py
+	url = https://github.com/SoufSilence/coordTransform_py.git

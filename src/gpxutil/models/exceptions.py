@@ -1,0 +1,2 @@
+class PointAreaNotFoundException(Exception):
+    pass
