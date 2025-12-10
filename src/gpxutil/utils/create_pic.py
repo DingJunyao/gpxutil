@@ -1,4 +1,5 @@
 import csv
+import gc
 import io
 import math
 import os
@@ -18,14 +19,15 @@ import imageio
 
 from moviepy.video.io.ffmpeg_writer import ffmpeg_write_video
 
-from svg_gen import generate_way_num_pad, generate_expwy_pad
+from src.gpxutil.core.config import CONFIG_HANDLER
+from .svg_gen import generate_way_num_pad, generate_expwy_pad
 
-chinese_font_path = "../../../asset/font/SourceHanSans_static_super_otc.ttc"
-english_font_path = "../../../asset/font/SourceSans3-Regular.otf"
-compass_img_path = "../../../asset/compass.svg"
-route_time_sep_img_path = "../../../asset/route_time_sep.svg"
+chinese_font_path = CONFIG_HANDLER.config.video_info_layer.font_path.chinese
+english_font_path = CONFIG_HANDLER.config.video_info_layer.font_path.english
+compass_img_path = CONFIG_HANDLER.config.video_info_layer.img_path.compass
+route_time_sep_img_path = CONFIG_HANDLER.config.video_info_layer.img_path.route_time_sep
 try:
-    big_font = ImageFont.truetype(chinese_font_path, 64, 12)
+    big_font = ImageFont.truetype(chinese_font_path, 64, CONFIG_HANDLER.config.video_info_layer.font_path.chinese_index)
 except IOError:
     print("字体无法加载，请检查路径和字体是否存在。")
     exit()
@@ -129,11 +131,11 @@ def generate_pic(
         road_sign_img_list = [svg_drawing_to_img(i) for i in road_sign_list]
         for i, road_sign_img in enumerate(road_sign_img_list):
             # 固定高度，等比例缩放，高为 road_sign_height
-            new_road_sign_wigth = int(road_sign_img.size[0] * road_sign_height / road_sign_img.size[1])
-            resized_img = road_sign_img.resize((new_road_sign_wigth, road_sign_height))
+            new_road_sign_width = int(road_sign_img.size[0] * road_sign_height / road_sign_img.size[1])
+            resized_img = road_sign_img.resize((new_road_sign_width, road_sign_height))
             # resized_img = road_sign_img.resize((road_sign_width, int(road_sign_img.size[1] * road_sign_width / road_sign_img.size[0])))
             image.paste(resized_img, (road_sign_offset, road_xy[1] - resized_img.size[1] // 2))
-            road_sign_offset += new_road_sign_wigth + road_sign_space
+            road_sign_offset += new_road_sign_width + road_sign_space
         road_sign_offset = road_sign_offset - road_sign_space + road_sign_char_space
     road_zh_right_x = 0
     road_en_right_x = 0
@@ -358,11 +360,16 @@ def generate_pic_from_processed_dict_list(dict_list: List[dict], crop_start=0, o
         img.save(f'{out_dir}/pic_{row["real_index"]:08d}.png', 'PNG')
         img.close()
 
+
+    # 多线程处理时内存泄漏问题严重
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [executor.submit(process_row, i, row) for i, row in enumerate(dict_list)]
         for future in tqdm(as_completed(futures), total=len(futures), desc='Generating pic', unit='point(s)'):
             pass
-
+    # for i, row in enumerate(tqdm(dict_list, desc='Generating pic', unit='point(s)')):
+    #     process_row(i, row)
+    #     # 每处理完一张图片就进行垃圾回收
+    #     gc.collect()
 
 def generate_pic_from_csv(path: str, start_index=0, end_index=-1, start_index_after_fill=0, end_index_after_fill=-1,
                           crop_start=0, crop_end=-1, out_dir: str = 'out/test'):

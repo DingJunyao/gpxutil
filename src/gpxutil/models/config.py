@@ -167,6 +167,7 @@ class AreaInfoConfig:
 class VideoInfoLayerFontPathConfig:
     chinese: str
     english: str
+    chinese_index: int = 0
 
 @dataclass
 class VideoInfoLayerImgPathConfig:

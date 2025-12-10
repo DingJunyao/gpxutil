@@ -58,7 +58,7 @@ def get_point_info(lat, lon):
                 road_name_en = ''
             road_detail = details(rev['features'][0]['properties']['geocoding']['place_id'])
             if 'ref' in road_detail['names']:
-                road_num = road_detail['names']['ref']
+                road_num = ','.join(road_detail['names']['ref'].split(';'))
     except Exception as e:
         logger.warning('Some info of (%s, %s) is empty. API response: %s' % (lat, lon, rev['features'][0]['properties']['geocoding']))
         memo = str(e)
@@ -77,6 +77,6 @@ def get_point_info(lat, lon):
         'memo': memo
     }
 if __name__ == '__main__':
-    lat = 30.49117517
-    lon = 114.49190074
+    lat = 30.44094238
+    lon = 114.61355524
     print(get_point_info(lat, lon))

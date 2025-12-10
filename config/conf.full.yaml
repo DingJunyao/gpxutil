@@ -203,6 +203,7 @@ traffic_sign:
 video_info_layer:
   font_path:
     chinese: asset/font/SourceHanSans_static_super_otc.ttc
+    chinese_index: 12
     english: asset/font/SourceSans3-Regular.otf
   img_path:
     compass: asset/compass.svg

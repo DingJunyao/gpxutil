@@ -323,6 +323,7 @@ class ConfigHandler:
 
         video_info_layer_font_path = VideoInfoLayerFontPathConfig(
             chinese=config_raw['video_info_layer']['font_path']['chinese'],
+            chinese_index=config_raw['video_info_layer']['font_path']['chinese_index'],
             english=config_raw['video_info_layer']['font_path']['english']
         )
 
