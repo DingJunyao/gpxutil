@@ -8,6 +8,7 @@ from geopandas import GeoDataFrame
 from src.gpxutil.core.config import CONFIG_HANDLER
 from src.gpxutil.models.route import Route
 from src.gpxutil.utils.create_pic import generate_pic_from_csv
+from src.gpxutil.utils.gen_road_info import gen_route_info, get_info, read_csv
 from src.gpxutil.utils.svg_gen import generate_expwy_pad, generate_way_num_pad
 
 if CONFIG_HANDLER.config.area_info.gdf:
@@ -45,6 +46,11 @@ def transform_route_info_from_gpx_file(
     route.to_csv(output_csv_file_path)
 
 
+def generate_road_info(input_csv_file_path: str):
+    csv_dict_list = read_csv(input_csv_file_path)
+    city_info_list = get_info(csv_dict_list)
+    return gen_route_info(city_info_list)
+
 def main():
     parser = argparse.ArgumentParser(description='GPX Utility Tool - Process GPX files and generate image sequences from CSV')
     subparsers = parser.add_subparsers(dest='command', help='Available commands')
@@ -74,6 +80,10 @@ def main():
     csv_parser.add_argument('--end_index_after_fill', default=-1, type=int, help='填补缺失帧之后的结束的序号（用于与视频对齐，填写秒数）')
     csv_parser.add_argument('--crop_start', type=int, default=0, help='输出帧的序号起始，用于修改特定范围内的帧。对应 CSV 文件的 index 列')
     csv_parser.add_argument('--crop_end', type=int, default=-1, help='输出帧的序号结束，用于修改特定范围内的帧。对应 CSV 文件的 index 列')
+
+    # gen road info
+    info_parser = subparsers.add_parser('info', help='Generate road info')
+    info_parser.add_argument('input', help='Input CSV file path')
 
 
 
@@ -164,6 +174,12 @@ def main():
             svg_drawing = generate_expwy_pad(code[1:], province=code[0], name=args.name)
         svg_drawing.saveas(output_svg_file_path)
         print("SVG num pad generation completed successfully.")
+    elif args.command == 'info':
+        input_csv_file_path = args.input
+        if not os.path.exists(input_csv_file_path):
+            print(f"Error: Input CSV file '{input_csv_file_path}' does not exist.")
+            sys.exit(1)
+        print(generate_road_info(input_csv_file_path))
     else:
         parser.print_help()
 

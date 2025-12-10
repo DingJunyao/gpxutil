@@ -8,7 +8,7 @@
 
 - 读取 GPX 文件，导出为 CSV 文件
 - 生成道路编号标志
-- 生成信息图的每一帧
+- 根据修改后的 CSV 文件，生成信息图的每一帧
 - 根据修改后的 CSV 文件，生成经由区域与道路的时间线
 
 ## 准备工作
@@ -236,7 +236,7 @@ traffic_sign:
     green: '#006E55'
 ```
 
-## 生成信息图的每一帧
+### 生成信息图的每一帧
 
 根据修改后的 CSV 文件，生成信息图的图像序列。理论上能够生成透明的视频文件，但实际发现 Premiere 无法处理这种文件，故目前还是生成图片序列，导入到 Premiere 内。
 
@@ -257,16 +257,12 @@ python main.py overlay "E:\t\test.csv" "E:\t\overlay\"
 
 读取的 CSV 文件应为 UTF-8 带 BOM 编码（因为经过修改后，很多情况下都存为这个编码的）。
 
-## `gen_road_info.py`
+### 根据修改后的 CSV 文件，生成经由区域与道路的时间线
 
 根据修改后的 CSV 文件，生成经由区域与道路的时间线。为方便自己写博客而编写。
 
-```python
-from gen_road_info import *
-
-csv_dict_list = read_csv('CSV 文件路径')
-city_info_list = get_info(csv_dict_list)
-print(gen_route_info(city_info_list))
+```bash
+python main.py info "CSV 文件"
 ```
 
 输出结果如下：
