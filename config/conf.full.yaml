@@ -3,7 +3,7 @@ area_info:
   # gdf: 只能够读取行政区划的中文信息，且只能精确到县级。不支持英文。
   # baidu：百度地图 API，配额小（个人开发者每日 300 次 API 调用，每秒一次点位记录只能处理五分钟的）
   # amap：高德地图 API，配额比百度地图的多（个人开发者每月 150000 次 API 调用），但个人版不支持英文
-  use: nominatim  # nominatim / gdf
+  use: nominatim  # nominatim / gdf / baidu / amap
   nominatim:
     # nomination API 的开头，结尾不带斜杠
     url: https://nominatim.openstreetmap.org/search

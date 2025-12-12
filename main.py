@@ -14,6 +14,7 @@ from src.gpxutil.utils.svg_gen import generate_expwy_pad, generate_way_num_pad
 if CONFIG_HANDLER.config.area_info.gdf:
     from src.gpxutil.utils.geocoding.gdf.db_connect import AreaCodeConnectHandler
     from src.gpxutil.utils.geocoding.gdf.gdf_handler import GDFListHandler
+    from src.gpxutil.utils.geocoding.gdf.gdf_handler import load_area_gdf_list
 
 
 def transform_route_info_from_gpx_file(
@@ -25,15 +26,23 @@ def transform_route_info_from_gpx_file(
         transformed_coordinate_type: str = 'gcj02',
         set_area: bool = True,
         source: str = None,
+        gdf_path: str = None,
+        gdf_db_path: str = None,
         area_gdf_list: list[GeoDataFrame] = None,
         area_code_conn: sqlite3.Connection = None,
         export_transformed_coordinate: bool = True
 ):
     if set_area and (source == 'gdf' or (source is None and CONFIG_HANDLER.config.area_info.use == 'gdf')):
-        if area_gdf_list is None:
-            area_gdf_list = GDFListHandler().list
-        if area_code_conn is None:
-            area_code_conn = AreaCodeConnectHandler().conn
+        # 如果提供了CLI参数，则使用CLI参数指定的路径
+        if gdf_path is not None and gdf_db_path is not None:
+            area_gdf_list = load_area_gdf_list(gdf_path)
+            area_code_conn = sqlite3.connect(gdf_db_path)
+        else:
+            # 否则使用默认配置
+            if area_gdf_list is None:
+                area_gdf_list = GDFListHandler().list
+            if area_code_conn is None:
+                area_code_conn = AreaCodeConnectHandler().conn
     """导入数据、转换、添加行政区划和道路名称"""
     route = Route.from_gpx_file(
         input_gpx_file_path,
@@ -64,6 +73,9 @@ def main():
     gpx_parser.add_argument('--no_set_area', action='store_false', help='不设置行政区划')
     gpx_parser.add_argument('--coordinate_type', default='wgs84', help='坐标类型，可选 wgs84 或 gcj02')
     gpx_parser.add_argument('--transformed_coordinate_type', default='gcj02', help='转换后坐标类型，可选 wgs84 或 gcj02')
+    gpx_parser.add_argument('--area_source', choices=['nominatim', 'gdf', 'baidu', 'amap'], help='行政区划数据来源，可选 nominatim, gdf, baidu, amap')
+    gpx_parser.add_argument('--gdf_path', help='GDF文件目录路径，仅当area_source为gdf时有效')
+    gpx_parser.add_argument('--gdf_db_path', help='GDF数据库文件路径，仅当area_source为gdf时有效')
 
     pad_parser = subparsers.add_parser('pad', help='Generate SVG num pad')
     pad_parser.add_argument('code', help='road code (eg. G318， G30, G0102, 苏S88, S111)')
@@ -122,6 +134,9 @@ def main():
             coordinate_type=args.coordinate_type,
             transformed_coordinate_type=args.transformed_coordinate_type,
             set_area=args.no_set_area,
+            source=args.area_source,
+            gdf_path=args.gdf_path,
+            gdf_db_path=args.gdf_db_path
         )
         print("GPX processing completed successfully.")
 

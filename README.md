@@ -171,9 +171,12 @@ python main.py transform "E:\t\test.gpx" "E:\t\test_trans.gpx" "E:\t\test.csv"
 参数：
 
 - `--no_transform_coordinate`：不转换坐标
-- `--coordinate_type`：坐标类型，可选 wgs84 或 gcj02
-- `--transformed_coordinate_type`：转换后坐标类型，可选 wgs84 或 gcj02
+- `--coordinate_type`：坐标类型，可选 `wgs84` 或 `gcj02`
+- `--transformed_coordinate_type`：转换后坐标类型，可选 `wgs84` 或 `gcj02`
 - `--no_set_area`：不设置行政区划
+- `--area_source`：指定区划信息来源，可选 `nominatim`、`gdf`、`baidu`、`amap`。默认按照配置文件指定
+- `--gdf_path`：区划信息来源为 `gdf` 时，指定区划边界文件目录路径。默认按照配置文件指定
+- `--gdf_db_path`：区划信息来源为 `gdf` 时，指定区划数据库文件路径。默认按照配置文件指定
 
 默认从 WGS84 转换为 GCJ02。
 
@@ -182,7 +185,7 @@ CSV 文件格式为 UTF-8 带 BOM，列包括：
 1. `index`：点的索引，以 `0` 开始
 2. `time_date`：点的日期，格式为 `%Y/%m/%d`
 3. `time_time`：点的时间，格式为 `%H:%M:%S`
-4. `time_microsecond`: 点的微秒（us）
+4. `time_microsecond`: 点的微秒（μs）
 5. `elapsed_time`：已用时间，单位为秒（s）
 6. `longitude`：经度，角度制，正数为东经
 7. `latitude`：纬度，角度制，正数为北纬
