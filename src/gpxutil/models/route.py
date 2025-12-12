@@ -15,15 +15,15 @@ from src.gpxutil.utils.data_type_processor import process_or_none, float_or_none
 from src.gpxutil.utils.datetime_util import datetime_yyyymmdd_slash_time_microsecond_tz
 
 if CONFIG_HANDLER.config.area_info.gdf:
-    from src.gpxutil.utils.db_connect import AreaCodeConnectHandler
-    from src.gpxutil.utils.gdf_handler import GDFListHandler
+    pass
 if CONFIG_HANDLER.config.area_info.nominatim:
     from src.gpxutil.utils.geocoding.nominatim import get_point_info as get_point_info_nominatim
 if CONFIG_HANDLER.config.area_info.baidu:
     from src.gpxutil.utils.geocoding.baidu import get_point_info as get_point_info_baidu
 if CONFIG_HANDLER.config.area_info.amap:
     from src.gpxutil.utils.geocoding.amap import get_point_info as get_point_info_amap
-from src.gpxutil.utils.route_util import calculate_bearing, get_area_info
+from src.gpxutil.utils.route_util import calculate_bearing
+from src.gpxutil.utils.geocoding.gdf.area_info import get_area_info
 from src.gpxutil.utils.gpx_convert import convert_single_point
 
 

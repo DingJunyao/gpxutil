@@ -12,8 +12,8 @@ from src.gpxutil.utils.gen_road_info import gen_route_info, get_info, read_csv
 from src.gpxutil.utils.svg_gen import generate_expwy_pad, generate_way_num_pad
 
 if CONFIG_HANDLER.config.area_info.gdf:
-    from src.gpxutil.utils.db_connect import AreaCodeConnectHandler
-    from src.gpxutil.utils.gdf_handler import GDFListHandler
+    from src.gpxutil.utils.geocoding.gdf.db_connect import AreaCodeConnectHandler
+    from src.gpxutil.utils.geocoding.gdf.gdf_handler import GDFListHandler
 
 
 def transform_route_info_from_gpx_file(
