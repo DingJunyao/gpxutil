@@ -7,29 +7,31 @@ from src.gpxutil.core.config import CONFIG_HANDLER
 from src.gpxutil.utils.gpx_convert import convert_single_point
 
 
-def reverse_geocoding(lon, lat):
+def reverse_geocoding(lon, lat, ak: str = None, freq: int = None):
     """
     高德逆向编码
     :param lon: 经度
     :param lat: 纬度
     :return:
     """
+    ak = ak or CONFIG_HANDLER.config.area_info.amap.ak
+    freq = freq or CONFIG_HANDLER.config.area_info.amap.freq
     url = 'https://restapi.amap.com/v3/geocode/regeo'
     trans_lon, trans_lat = convert_single_point(lon, lat, 'wgs84', 'gcj02')
     params = {
-        'key': CONFIG_HANDLER.config.area_info.amap.ak,
+        'key': ak,
         'location': f'{trans_lon},{trans_lat}',
         'poitype': 180000,
         'radius': 500,
         'extensions': 'all',
     }
-    time.sleep(1/CONFIG_HANDLER.config.area_info.amap.freq)
+    time.sleep(1/freq)
     response = requests.get(url, params=params)
     return response.json()
 
-def get_point_info(lat, lon):
+def get_point_info(lat, lon, ak: str = None, freq: int = None):
     province, city, area, town, road_name, road_num, province_en, city_en, area_en, town_en, road_name_en, road_num_en, memo = '', '', '', '', '', '', '', '', '', '', '', '', ''
-    resp = reverse_geocoding(lon, lat)
+    resp = reverse_geocoding(lon, lat, ak, freq)
     if resp['status'] == "1" and resp['infocode'] == "10000":
         province = resp['regeocode']['addressComponent']['province']
         city = resp['regeocode']['addressComponent']['city']

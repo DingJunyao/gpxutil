@@ -343,7 +343,9 @@ class Route:
             gpx: gpxpy.gpx.GPX, track_index: int = 0, segment_index: int = 0,
             transform_coordinate: bool = False, coordinate_type: str = None, transformed_coordinate_type: str = None,
             set_area: bool = False, source: str = True,
-            area_gdf_list: list[GeoDataFrame] = None, area_code_conn: sqlite3.Connection = None
+            nominatim_url: str = None,
+            area_gdf_list: list[GeoDataFrame] = None, area_code_conn: sqlite3.Connection = None,
+            map_api_ak: str = None, map_freq: int = None, baidu_get_en_result: bool = None,
     ) -> 'Route':
         """
         从 GPX 对象导入数据
@@ -382,11 +384,11 @@ class Route:
             if set_area:
                 match source:
                     case 'nominatim':
-                        area_info = get_point_info_nominatim(point.latitude, point.longitude)
+                        area_info = get_point_info_nominatim(point.latitude, point.longitude, host=nominatim_url)
                     case 'baidu':
-                        area_info = get_point_info_baidu(point.latitude, point.longitude)
+                        area_info = get_point_info_baidu(point.latitude, point.longitude, ak=map_api_ak, freq=map_freq, get_en_result=baidu_get_en_result)
                     case 'amap':
-                        area_info = get_point_info_amap(point.latitude, point.longitude)
+                        area_info = get_point_info_amap(point.latitude, point.longitude, ak=map_api_ak, freq=map_freq)
                     case 'gdf':
                         area_info = get_area_info(Point(point.longitude, point.latitude), area_gdf_list=area_gdf_list,
                                                   area_code_conn=area_code_conn)
@@ -482,7 +484,9 @@ class Route:
             gpx_file_path: str, track_index: int = 0, segment_index: int = 0,
             transform_coordinate: bool = False, coordinate_type: str = None, transformed_coordinate_type: str = None,
             set_area: bool = False, source: str = None,
-            area_gdf_list: list[GeoDataFrame] = None, area_code_conn: sqlite3.Connection = None
+            nominatim_url: str = None,
+            area_gdf_list: list[GeoDataFrame] = None, area_code_conn: sqlite3.Connection = None,
+            map_api_ak: str = None, map_freq: int = None, baidu_get_en_result: bool = None,
     ) -> 'Route':
         """
         从 GPX 文件导入数据

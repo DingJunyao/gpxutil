@@ -7,16 +7,18 @@ from src.gpxutil.core.config import CONFIG_HANDLER
 
 
 
-def reverse_geocoding(lon, lat, lang: str='zh-CN'):
+def reverse_geocoding(lon, lat, lang: str='zh-CN', ak: str = None, freq: int = None):
     """
     百度逆向编码
     :param lon: 经度
     :param lat: 纬度
     :return:
     """
+    ak = ak or CONFIG_HANDLER.config.area_info.baidu.ak
+    freq = freq or CONFIG_HANDLER.config.area_info.baidu.freq
     url = 'https://api.map.baidu.com/reverse_geocoding/v3/'
     params = {
-        'ak': CONFIG_HANDLER.config.area_info.baidu.ak,
+        'ak': ak,
         # 'extensions_poi': 1,
         # 'entire_poi': 1,
         'sort_strategy': 'distance',
@@ -26,13 +28,17 @@ def reverse_geocoding(lon, lat, lang: str='zh-CN'):
         'poi_types': '道路',
         'language': lang
     }
-    time.sleep(1/CONFIG_HANDLER.config.area_info.baidu.freq)
+    time.sleep(1/freq)
     response = requests.get(url, params=params)
     return response.json()
 
-def get_point_info(lat, lon):
+def get_point_info(lat, lon, ak: str = None, freq: int = None, get_en_result: bool = None):
+    if get_en_result is None:
+        get_en_result = CONFIG_HANDLER.config.area_info.baidu.get_en_result
+    else:
+        get_en_result = get_en_result
     province, city, area, town, road_name, road_num, province_en, city_en, area_en, town_en, road_name_en, road_num_en, memo = '', '', '', '', '', '', '', '', '', '', '', '', ''
-    resp = reverse_geocoding(lon, lat)
+    resp = reverse_geocoding(lon, lat, ak, freq)
     if resp['status'] == 0:
         province = resp['result']['addressComponent']['province']
         city = resp['result']['addressComponent']['city']
@@ -48,8 +54,8 @@ def get_point_info(lat, lon):
                     road_name = ', '.join([road['name'] for road in nearest_roads if road['name']])
     else:
         logger.error(f'百度逆向编码错误: {resp}')
-    if CONFIG_HANDLER.config.area_info.baidu.get_en_result:
-        resp_en = reverse_geocoding(lon, lat, 'en')
+    if get_en_result:
+        resp_en = reverse_geocoding(lon, lat, 'en', ak, freq)
         if resp_en['status'] == 0:
             province_en = resp_en['result']['addressComponent']['province']
             city_en = resp_en['result']['addressComponent']['city']

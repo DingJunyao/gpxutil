@@ -26,10 +26,14 @@ def transform_route_info_from_gpx_file(
         transformed_coordinate_type: str = 'gcj02',
         set_area: bool = True,
         source: str = None,
+        nominatim_url: str = None,
         gdf_path: str = None,
         gdf_db_path: str = None,
         area_gdf_list: list[GeoDataFrame] = None,
         area_code_conn: sqlite3.Connection = None,
+        map_api_ak: str = None,
+        map_freq: int = None,
+        baidu_get_en_result: bool = None,
         export_transformed_coordinate: bool = True
 ):
     if set_area and (source == 'gdf' or (source is None and CONFIG_HANDLER.config.area_info.use == 'gdf')):
@@ -47,7 +51,10 @@ def transform_route_info_from_gpx_file(
     route = Route.from_gpx_file(
         input_gpx_file_path,
         transform_coordinate=transform_coordinate, coordinate_type=coordinate_type, transformed_coordinate_type=transformed_coordinate_type,
-        set_area=set_area, source=source, area_gdf_list=area_gdf_list, area_code_conn=area_code_conn
+        set_area=set_area, source=source,
+        nominatim_url=nominatim_url,
+        area_gdf_list=area_gdf_list, area_code_conn=area_code_conn,
+        map_api_ak=map_api_ak, map_freq=map_freq, baidu_get_en_result=baidu_get_en_result
     )
 
     """导出数据，供外部修改、生成轨迹"""
@@ -74,8 +81,12 @@ def main():
     gpx_parser.add_argument('--coordinate_type', default='wgs84', help='坐标类型，可选 wgs84 或 gcj02')
     gpx_parser.add_argument('--transformed_coordinate_type', default='gcj02', help='转换后坐标类型，可选 wgs84 或 gcj02')
     gpx_parser.add_argument('--area_source', choices=['nominatim', 'gdf', 'baidu', 'amap'], help='行政区划数据来源，可选 nominatim, gdf, baidu, amap')
-    gpx_parser.add_argument('--gdf_path', help='GDF文件目录路径，仅当area_source为gdf时有效')
-    gpx_parser.add_argument('--gdf_db_path', help='GDF数据库文件路径，仅当area_source为gdf时有效')
+    gpx_parser.add_argument('--nominatim_url', help='nomination API 的开头，结尾不带斜杠。仅当 area_source 为 nominatim 时有效')
+    gpx_parser.add_argument('--gdf_path', help='GDF 文件目录路径，仅当 area_source为 gdf 时有效')
+    gpx_parser.add_argument('--gdf_db_path', help='GDF数据库文件路径，仅当 area_source 为 gdf 时有效')
+    gpx_parser.add_argument('--map_api_ak', help='百度地图 / 高德地图的 API Key，仅当 area_source 为 baidu 或 amap 时有效')
+    gpx_parser.add_argument('--map_freq', type=int, default=3, help='百度地图 / 高德地图的请求频率，仅当 area_source 为 baidu 或 amap 时有效')
+    gpx_parser.add_argument('--baidu_get_en_result', type=bool, default=False, help='使用百度地图获取行政区划数据时，是否获取英文名。如果获取，则一次执行两次 API 请求。能够获取到行政区划的英文名（不包括行政级别名称），道路则不一定能够取到。仅当 area_source 为 baidu 时有效，默认为 False')
 
     pad_parser = subparsers.add_parser('pad', help='Generate SVG num pad')
     pad_parser.add_argument('code', help='road code (eg. G318， G30, G0102, 苏S88, S111)')
@@ -135,8 +146,12 @@ def main():
             transformed_coordinate_type=args.transformed_coordinate_type,
             set_area=args.no_set_area,
             source=args.area_source,
+            nominatim_url=args.nominatim_url,
             gdf_path=args.gdf_path,
-            gdf_db_path=args.gdf_db_path
+            gdf_db_path=args.gdf_db_path,
+            map_api_ak=args.map_api_ak,
+            map_freq=args.map_freq,
+            baidu_get_en_result=args.baidu_get_en_result
         )
         print("GPX processing completed successfully.")
 
