@@ -25,6 +25,7 @@ if CONFIG_HANDLER.config.area_info.amap:
 from src.gpxutil.utils.route_util import calculate_bearing
 from src.gpxutil.utils.geocoding.gdf.area_info import get_area_info
 from src.gpxutil.utils.gpx_convert import convert_single_point
+from loguru import logger
 
 
 @dataclass
@@ -428,6 +429,9 @@ class Route:
                 # distance = calculate_distance(segment.points[index - 1], point)
                 prev_point = segment.points[index - 1]
                 distance = point.distance_3d(prev_point)
+                if point.time_difference(prev_point) == 0:
+                    logger.warning(f"The time difference between the point and its previous point is 0, skipped: {point}")
+                    continue
                 speed = distance / point.time_difference(prev_point)
                 if point.course:
                     course = point.course
