@@ -9,6 +9,7 @@ import sys
 from io import StringIO
 
 from main import main, transform_route_info_from_gpx_file, generate_road_info
+from src.gpxutil.models.region import Region
 from src.gpxutil.models.route import Route, RoutePoint
 from src.gpxutil.utils.create_pic import generate_pic_from_csv
 from src.gpxutil.utils.svg_gen import generate_expwy_pad, generate_way_num_pad
@@ -272,8 +273,8 @@ def test_main_info_command_with_mock(monkeypatch):
 
     try:
         main()
-        # 验证函数被调用
-        mock_info_func.assert_called_once_with(temp_csv_path)
+        # 验证函数被调用（默认地区 cn -> Region.CN）
+        mock_info_func.assert_called_once_with(temp_csv_path, Region.CN)
     except SystemExit:
         # 预期的退出行为
         pass

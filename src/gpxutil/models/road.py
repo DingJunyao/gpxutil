@@ -1,6 +1,7 @@
 from svgwrite import Drawing
 
 from src.gpxutil.models.enum_class import ChinaMainlandRoadLevel, ChinaProvinceSingleCharAbbr
+from src.gpxutil.models.indonesia import IndonesiaRoadLevel, parse_indonesia_road_num
 from src.gpxutil.utils.svg_gen import generate_expwy_pad, generate_way_num_pad
 
 
@@ -104,6 +105,34 @@ class RoadGroup:
             if road.have_sign:
                 sign_list.append(road.to_svg())
         return sign_list
+
+
+class IndonesiaRoad(Road):
+    def __init__(self, road_num: str = None, road_name: str = None, province_texts: list[str] = None):
+        """
+        :param road_num: CSV road_num 字段，如 '3'、'023'、'35-024'
+        :param road_name: CSV road_name 字段（中文），用于 TOL 关键词判断
+        :param province_texts: 候选省份文本（印尼语名、中文名），用于查省份代码
+        """
+        from src.gpxutil.core.config import CONFIG_HANDLER
+        self.name = road_name
+        self.english_name = None
+        self.road_num = road_num
+        info = parse_indonesia_road_num(
+            road_num, road_name, province_texts or [],
+            CONFIG_HANDLER.config.traffic_sign.indonesia_road_sign.tol_keywords
+        )
+        self.level: IndonesiaRoadLevel | None = info.level if info else None
+        self.code: str | None = info.code if info else None
+        self.province_code: str | None = info.province_code if info else None
+        self.have_sign = info is not None
+
+    def to_svg(self):
+        from src.gpxutil.utils.svg_gen import generate_indonesia_shield
+        return generate_indonesia_shield(self.code, self.level, self.province_code)
+
+    def to_svg_file(self, path: str):
+        self.to_svg().saveas(path)
 
 
 if __name__ == '__main__':

@@ -124,7 +124,8 @@ class ConfigHandler:
             white=config_raw['traffic_sign']['color']['white'],
             yellow=config_raw['traffic_sign']['color']['yellow'],
             black=config_raw['traffic_sign']['color']['black'],
-            green=config_raw['traffic_sign']['color']['green']
+            green=config_raw['traffic_sign']['color']['green'],
+            blue=config_raw['traffic_sign']['color']['blue']
         )
 
         font_path = FontPathConfig(
@@ -341,11 +342,24 @@ class ConfigHandler:
             with_name=expwy_code_sign_with_name
         )
 
+        indonesia_road_sign_raw = config_raw['traffic_sign']['indonesia_road_sign']
+        indonesia_road_sign = IndonesiaRoadSignConfig(
+            template_path=indonesia_road_sign_raw['template'],
+            tol_keywords=indonesia_road_sign_raw['tol_keywords'],
+            font=IndonesiaRoadSignFontConfig(
+                upper=indonesia_road_sign_raw['font']['upper'],
+                upper_height=indonesia_road_sign_raw['font']['upper_height'],
+                lower=indonesia_road_sign_raw['font']['lower'],
+                lower_height=indonesia_road_sign_raw['font']['lower_height']
+            )
+        )
+
         traffic_sign = TrafficSignConfig(
             color=color,
             font_path=font_path,
             way_num_pad=way_num_pad,
-            expwy_code_sign=expwy_code_sign
+            expwy_code_sign=expwy_code_sign,
+            indonesia_road_sign=indonesia_road_sign
         )
 
         video_info_layer_font_path = VideoInfoLayerFontPathConfig(
@@ -360,14 +374,10 @@ class ConfigHandler:
         )
 
         video_info_layer_area = VideoInfoLayerAreaConfig(
-            chinese=PositionConfig(
-                x=config_raw['video_info_layer']['frame']['area']['chinese']['x'],
-                y=config_raw['video_info_layer']['frame']['area']['chinese']['y']
-            ),
-            english=PositionConfig(
-                x=config_raw['video_info_layer']['frame']['area']['english']['x'],
-                y=config_raw['video_info_layer']['frame']['area']['english']['y']
-            )
+            lines=[VideoInfoLayerTextLineConfig(**line)
+                   for line in config_raw['video_info_layer']['frame']['area']['lines']],
+            bottom_y=config_raw['video_info_layer']['frame']['area']['bottom_y'],
+            line_gap=config_raw['video_info_layer']['frame']['area']['line_gap']
         )
 
         video_info_layer_road_sign = VideoInfoLayerRoadSignConfig(
@@ -381,8 +391,10 @@ class ConfigHandler:
             x=config_raw['video_info_layer']['frame']['road']['x'],
             middle_y=config_raw['video_info_layer']['frame']['road']['middle_y'],
             sign=video_info_layer_road_sign,
-            chinese_y=config_raw['video_info_layer']['frame']['road']['chinese_y'],
-            english_y=config_raw['video_info_layer']['frame']['road']['english_y']
+            lines=[VideoInfoLayerTextLineConfig(**line)
+                   for line in config_raw['video_info_layer']['frame']['road']['lines']],
+            bottom_y=config_raw['video_info_layer']['frame']['road']['bottom_y'],
+            line_gap=config_raw['video_info_layer']['frame']['road']['line_gap']
         )
 
         video_info_layer_compass = PositionConfig(

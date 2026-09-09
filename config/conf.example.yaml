@@ -9,6 +9,15 @@ traffic_sign:
     yellow: '#FFCD00'
     black: '#000000'
     green: '#006E55'
+    blue: '#003E86'
+  indonesia_road_sign:
+    template: asset/template/id_sheild.svg
+    tol_keywords: ['收费', 'Tol']
+    font:
+      upper: asset/font/ClearviewHwy1W.ttf
+      upper_height: 45
+      lower: asset/font/ClearviewHwy2W.ttf
+      lower_height: 135
   font_path:
     A: asset/font/SourceHanSansSC-Bold.otf
     B: asset/font/jtbz_B.ttf
@@ -45,12 +54,12 @@ video_info_layer:
     dpi: 72
     min_space: 48
     area:
-      chinese:
-        x: 191.8085
-        y: 1924
-      english:
-        x: 192
-        y: 1997
+      bottom_y: 1997
+      line_gap: 8
+      lines:
+        - {x: 192, font_size: 64}
+        - {x: 192, font_size: 44}
+        - {x: 192, font_size: 44}
     road:
       x: 1464
       middle_y: 1988
@@ -59,8 +68,12 @@ video_info_layer:
         height: 128
         space: 24
         char_space: 48
-      chinese_y: 1924
-      english_y: 1997
+      bottom_y: 1997
+      line_gap: 8
+      lines:
+        - {font_size: 64}
+        - {font_size: 44}
+        - {font_size: 44}
     compass:
       x: 2432
       y: 1924

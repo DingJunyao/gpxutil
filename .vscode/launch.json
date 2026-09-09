@@ -1,0 +1,16 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+
+        {
+            "name": "Python 调试程序: 模块",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "main",
+            "args": ["overlay", "E:\\project\\recorded\\20260829-印尼赛伍瀑布-泗水\\2026-08-29 15 49 16.csv", "E:\\project\\recorded\\20260829-印尼赛伍瀑布-泗水\\overlay", "--region", "id"]
+        }
+    ]
+}

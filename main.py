@@ -6,6 +6,7 @@ import os
 from geopandas import GeoDataFrame
 
 from src.gpxutil.core.config import CONFIG_HANDLER
+from src.gpxutil.models.region import Region
 from src.gpxutil.models.route import Route
 from src.gpxutil.utils.create_pic import generate_pic_from_csv
 from src.gpxutil.utils.gen_road_info import gen_route_info, get_info, read_csv
@@ -62,10 +63,10 @@ def transform_route_info_from_gpx_file(
     route.to_csv(output_csv_file_path)
 
 
-def generate_road_info(input_csv_file_path: str):
+def generate_road_info(input_csv_file_path: str, region: Region = Region.CN):
     csv_dict_list = read_csv(input_csv_file_path)
-    city_info_list = get_info(csv_dict_list)
-    return gen_route_info(city_info_list)
+    city_info_list = get_info(csv_dict_list, region)
+    return gen_route_info(city_info_list, region)
 
 def main():
     parser = argparse.ArgumentParser(description='GPX Utility Tool - Process GPX files and generate image sequences from CSV')
@@ -103,10 +104,12 @@ def main():
     csv_parser.add_argument('--end_index_after_fill', default=-1, type=int, help='填补缺失帧之后的结束的序号（用于与视频对齐，填写秒数）')
     csv_parser.add_argument('--crop_start', type=int, default=0, help='输出帧的序号起始，用于修改特定范围内的帧。对应 CSV 文件的 index 列')
     csv_parser.add_argument('--crop_end', type=int, default=-1, help='输出帧的序号结束，用于修改特定范围内的帧。对应 CSV 文件的 index 列')
+    csv_parser.add_argument('--region', choices=['cn', 'id'], default='cn', help='地区：cn=中国大陆，id=印尼')
 
     # gen road info
     info_parser = subparsers.add_parser('info', help='Generate road info')
     info_parser.add_argument('input', help='Input CSV file path')
+    info_parser.add_argument('--region', choices=['cn', 'id'], default='cn', help='地区：cn=中国大陆，id=印尼')
 
 
 
@@ -180,7 +183,8 @@ def main():
             input_csv_file_path, out_dir=output_directory,
             start_index=start_index, end_index=end_index,
             start_index_after_fill=start_index_after_fill, end_index_after_fill=end_index_after_fill,
-            crop_start=crop_start, crop_end=crop_end
+            crop_start=crop_start, crop_end=crop_end,
+            region=Region(args.region)
         )
         print("Image generation completed successfully.")
     elif args.command == 'pad':
@@ -209,7 +213,7 @@ def main():
         if not os.path.exists(input_csv_file_path):
             print(f"Error: Input CSV file '{input_csv_file_path}' does not exist.")
             sys.exit(1)
-        print(generate_road_info(input_csv_file_path))
+        print(generate_road_info(input_csv_file_path, Region(args.region)))
     else:
         parser.print_help()
 

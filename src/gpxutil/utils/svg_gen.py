@@ -2,6 +2,7 @@ from functools import reduce
 import xml.etree.ElementTree as ET
 
 import svgwrite
+from svgwrite import Drawing
 from svgpathtools import svg2paths
 from svgpathtools import parse_path
 from svgpathtools.path import Path
@@ -10,6 +11,7 @@ from fontTools.ttLib import TTFont
 from fontTools.pens.svgPathPen import SVGPathPen
 
 from src.gpxutil.core.config import CONFIG_HANDLER
+from src.gpxutil.models.indonesia import IndonesiaRoadLevel
 
 # Brown  -- Panose 469 -- RGB 97,54,29  61361D
 # Green  -- Panose 342 -- RGB 0,110,85  006E55
@@ -404,6 +406,193 @@ def generate_expwy_pad(code: str, province: str = None, name: str = None):
 
 def generate_expwy_pad_to_file(path: str, code: str, province: str = None, name: str = None):
     generate_expwy_pad(code, province, name).saveas(path)
+
+
+INDONESIA_LEVEL_BANNER_TEXT = {
+    IndonesiaRoadLevel.NASIONAL: 'NASIONAL',
+    IndonesiaRoadLevel.TOL: 'TOL',
+    IndonesiaRoadLevel.PROVINSI: 'PROVINSI',
+}
+
+
+def _parse_polygon_points(points: str) -> list[tuple[float, float]]:
+    """解析 polygon 的 points 属性为坐标对列表（兼容逗号与空格分隔）。"""
+    nums = [float(v) for v in points.replace(',', ' ').split()]
+    return list(zip(nums[0::2], nums[1::2]))
+
+
+def get_element_bbox_by_id(svg_path: str, element_id: str):
+    """
+    解析 SVG 模板，取指定 id 元素的 bbox（支持 polygon）。
+    :return: (xmin, ymin, xmax, ymax)；找不到该 id 的元素返回 None
+    """
+    tree = ET.parse(svg_path)
+    root = tree.getroot()
+    for elem in root.iter():
+        if elem.attrib.get('id') == element_id:
+            if elem.tag.split('}')[-1] == 'polygon':
+                points = _parse_polygon_points(elem.attrib.get('points', ''))
+                xs = [p[0] for p in points]
+                ys = [p[1] for p in points]
+                return min(xs), min(ys), max(xs), max(ys)
+            return None
+    return None
+
+
+def _get_back_group_elements(svg_path: str) -> list[tuple[str, dict]]:
+    """
+    解析印尼盾牌模板文件，取 id='back' 组内的绘制元素（跳过 id='text' 占位字形组）。
+    模板多边形不被 svg2paths 解析，这里用 XML 直接取出。
+
+    :return: 按文档顺序的 (标签名, 属性字典) 列表；head 多边形以 id='head' 属性标识，便于上色
+    :raise ValueError: 模板中找不到 id='back' 的组
+    """
+    root = ET.parse(svg_path).getroot()
+    back_group = None
+    for elem in root.iter():
+        if elem.tag.split('}')[-1] == 'g' and elem.attrib.get('id') == 'back':
+            back_group = elem
+            break
+    if back_group is None:
+        raise ValueError(f'印尼盾牌模板 {svg_path} 中找不到 id=back 的元素')
+    result = []
+    for elem in back_group:
+        tag = elem.tag.split('}')[-1]
+        if tag == 'g' and elem.attrib.get('id') == 'background':
+            # 展开背景组：白色六边形 polygon + 黑色描边 path，保持模板内顺序
+            for child in elem:
+                result.append((child.tag.split('}')[-1], child.attrib))
+        else:
+            result.append((tag, elem.attrib))
+    return result
+
+
+def calculate_centered_scaled_char_info(code: str, center_x: float, center_y: float,
+                                        height: float, font: str) -> list[Path]:
+    """
+    按固定高度缩放一段文字，水平居中于 center_x、垂直居中于 center_y（无额外字距）。
+    空格无字形轮廓：按字体 ascent 比例换算其 advance 宽度占位排版，生成占位 path 保持
+    与字符一一对应（不绘制像素），保证与字形 path 同样的绘制流程。
+
+    :param code: 文字
+    :param center_x: 文字水平中心 x
+    :param center_y: 文字垂直中心 y
+    :param height: 文字高度
+    :param font: 字体文件路径
+    :return: 各字符（含空格）path 列表
+    :raise ValueError: 文字为空
+    """
+    if not code:
+        raise ValueError('文字为空，无法生成字形 path')
+    font_obj = None
+    space_scale = 0.0
+    space_advance = 0.0
+    scaled_char_path_list = []
+    scaled_char_width_list = []
+    for char in code:
+        if char == ' ':
+            if font_obj is None:
+                font_obj = TTFont(font)
+                # 字形按各自轮廓 bbox 高度缩放到 height，其纵向跨度约为基线到字帽高度
+                # （Clearview 约 1000-1033 / 1448 em）；ascent 与该跨度同一量级，
+                # 空格无轮廓，故以 ascent 作统一纵向基准把 advance（字面宽）换算到像素，
+                # 使空格视觉宽度与相邻字形宽度比例协调。此为近似值，勿按 bug 修改。
+                space_scale = height / font_obj['hhea'].ascent
+                space_glyph = font_obj.getBestCmap()[ord(' ')]
+                space_advance = font_obj['hmtx'][space_glyph][0]
+            scaled_char_width_list.append(space_advance * space_scale)
+            scaled_char_path_list.append(None)
+            continue
+        paths_char = char_to_svg_path(font, char)
+        char_minx, char_maxx, char_miny, char_maxy = paths_char.bbox()
+        char_height = char_maxy - char_miny
+        ratio = height / char_height
+        scaled_path_char = paths_char.scaled(ratio)
+        scaled_char_minx, scaled_char_maxx, scaled_char_miny, scaled_char_maxy = scaled_path_char.bbox()
+        scaled_char_width = scaled_char_maxx - scaled_char_minx
+        scaled_path_char = scaled_path_char.translated(complex(-scaled_char_minx, -scaled_char_miny))
+        scaled_char_width_list.append(scaled_char_width)
+        scaled_char_path_list.append(scaled_path_char)
+
+    total_width = reduce(lambda x, y: x + y, scaled_char_width_list)
+    start_x = center_x - total_width / 2
+    start_y = center_y - height / 2
+    char_x = start_x
+    result = []
+    for path, width in zip(scaled_char_path_list, scaled_char_width_list):
+        if path is None:
+            # 空格占位：零长度退化 path（M 0,0h0），只占排版位置、不绘制像素
+            path = parse_path('M 0,0h0')
+        result.append(path.translated(complex(char_x, start_y)))
+        char_x += width
+    return result
+
+
+def generate_indonesia_shield(code: str, road_level: IndonesiaRoadLevel,
+                              province_code: str | None) -> Drawing:
+    """
+    生成印尼六边形道路盾牌。布局由模板元素 bbox 推导。
+    模板 id='text' 组为占位字形（display:none），不绘制，仅画背景与色带。
+
+    :param code: 道路编号（盾牌大字），如 '3'、'024'；为空或 None 视为参数错误
+    :param road_level: 道路等级，决定色带颜色与等级词
+    :param province_code: 省份代码（色带小字部分），可为 None
+    :return: svgwrite Drawing
+    :raise ValueError: code 为空或 road_level 不在 IndonesiaRoadLevel 中
+    """
+    if not code:
+        raise ValueError('code 为空，无法生成盾牌')
+    if road_level not in INDONESIA_LEVEL_BANNER_TEXT:
+        raise ValueError(f'未知的印尼道路等级: {road_level}')
+    set_const()
+    cfg = CONFIG_HANDLER.config.traffic_sign.indonesia_road_sign
+    blue = CONFIG_HANDLER.config.traffic_sign.color.blue
+
+    # 色带颜色：国道/高速红色，省道蓝色
+    head_fill = RED
+    if road_level == IndonesiaRoadLevel.PROVINSI:
+        head_fill = blue
+
+    banner_text = INDONESIA_LEVEL_BANNER_TEXT[road_level]
+    if province_code:
+        banner_text += f' {province_code}'
+
+    width, height = get_svg_dimensions(cfg.template_path)
+    head_bbox = get_element_bbox_by_id(cfg.template_path, 'head')
+    if head_bbox is None:
+        raise ValueError(f'印尼盾牌模板 {cfg.template_path} 中找不到 id=head 的元素')
+    center_x = width / 2
+    head_center_y = (head_bbox[1] + head_bbox[3]) / 2
+    lower_center_y = (head_bbox[3] + height) / 2
+
+    dwg = svgwrite.Drawing('output.svg', size=(f'{width:g}', f'{height:g}'))
+    # 模板背景：白色六边形 → 黑色描边 → 色带（保持顺序，使色带覆盖描边顶部）
+    for tag, attrib in _get_back_group_elements(cfg.template_path):
+        if tag == 'polygon':
+            if attrib.get('id') == 'head':
+                fill = head_fill
+                polygon = dwg.polygon(points=_parse_polygon_points(attrib['points']), fill=fill, id='head')
+            else:
+                fill = WHITE
+                polygon = dwg.polygon(points=_parse_polygon_points(attrib['points']), fill=fill)
+            dwg.add(polygon)
+        elif tag == 'path':
+            # svgwrite 不接受模板里紧凑的 path 语法，先解析再序列化
+            dwg.add(dwg.path(d=parse_path(attrib['d']).d(), fill=BLACK))
+
+    # 色带小字（白）与大字（黑）
+    for path in calculate_centered_scaled_char_info(
+            banner_text, center_x, head_center_y, cfg.font.upper_height, cfg.font.upper):
+        dwg.add(dwg.path(d=path.d(), fill=WHITE))
+    for path in calculate_centered_scaled_char_info(
+            code, center_x, lower_center_y, cfg.font.lower_height, cfg.font.lower):
+        dwg.add(dwg.path(d=path.d(), fill=BLACK))
+    return dwg
+
+
+def generate_indonesia_shield_to_file(code: str, road_level: IndonesiaRoadLevel,
+                                      province_code: str | None, path: str):
+    generate_indonesia_shield(code, road_level, province_code).saveas(path)
 
 
 if __name__ == '__main__':

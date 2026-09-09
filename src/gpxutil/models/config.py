@@ -56,6 +56,7 @@ class ColorConfig:
     yellow: str
     black: str
     green: str
+    blue: str
 
 @dataclass
 class FontPathConfig:
@@ -147,11 +148,25 @@ class ExpwyCodeSignConfig:
     with_name: ExpwyCodeSignWithNameConfig
 
 @dataclass
+class IndonesiaRoadSignFontConfig:
+    upper: str           # 色带小字字体路径（1-W）
+    upper_height: int    # 色带小字高度（模板 viewBox 坐标）
+    lower: str           # 大字字体路径（2-W）
+    lower_height: int    # 大字高度（模板 viewBox 坐标）
+
+@dataclass
+class IndonesiaRoadSignConfig:
+    template_path: str
+    tol_keywords: list[str]
+    font: IndonesiaRoadSignFontConfig
+
+@dataclass
 class TrafficSignConfig:
     color: ColorConfig
     font_path: FontPathConfig
     way_num_pad: WayNumPadConfig
     expwy_code_sign: ExpwyCodeSignConfig
+    indonesia_road_sign: IndonesiaRoadSignConfig
 
 @dataclass
 class AreaInfoConfig:
@@ -175,9 +190,21 @@ class VideoInfoLayerImgPathConfig:
     route_time_sep: str
 
 @dataclass
+class VideoInfoLayerTextLineConfig:
+    """覆盖层一行文本的横坐标与字号。
+
+    纵坐标不在此配置：由 bottom_y 锚定最后一行、按各行实际渲染高度自下而上堆叠计算
+    （行数增减时上方行自然上下移动，最后一行位置恒定）。
+    """
+    font_size: int = 64
+    # 区域行由配置直接给出 x；道路行不单独提供 x，绘制时沿用道路整体 x
+    x: float | None = None
+
+@dataclass
 class VideoInfoLayerAreaConfig:
-    chinese: PositionConfig
-    english: PositionConfig
+    lines: list[VideoInfoLayerTextLineConfig]
+    bottom_y: float   # 最后一行文本的顶部 y
+    line_gap: float   # 相邻行的视觉空隙
 
 @dataclass
 class VideoInfoLayerRoadSignConfig:
@@ -191,8 +218,9 @@ class VideoInfoLayerRoadConfig:
     x: int
     middle_y: int
     sign: VideoInfoLayerRoadSignConfig
-    chinese_y: int
-    english_y: int
+    lines: list[VideoInfoLayerTextLineConfig]  # 只含 font_size，x 用上面的 x
+    bottom_y: float
+    line_gap: float
 
 @dataclass
 class VideoInfoLayerRouteTimeUsedConfig:

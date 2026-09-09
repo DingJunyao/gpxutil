@@ -9,6 +9,7 @@ from unittest.mock import patch, MagicMock
 from io import StringIO
 
 from main import main, transform_route_info_from_gpx_file
+from src.gpxutil.models.region import Region
 
 
 def test_cli_transform_command_with_all_parameters():
@@ -194,3 +195,56 @@ def test_cli_invalid_area_source_fails():
         # Clean up temporary file
         if os.path.exists(temp_input_path):
             os.remove(temp_input_path)
+
+
+def test_cli_overlay_with_region_id():
+    """overlay 命令接收 --region id 并透传"""
+    import tempfile
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+        f.write('index\n0\n')
+        csv_path = f.name
+    out_dir = tempfile.mkdtemp()
+    with patch('main.generate_pic_from_csv') as mock_gen:
+        sys.argv = ['main.py', 'overlay', csv_path, out_dir, '--region', 'id', '--end_index', '0']
+        try:
+            main()
+            assert mock_gen.call_args.kwargs['region'] == Region.ID
+        except SystemExit:
+            pass
+        finally:
+            os.remove(csv_path)
+
+
+def test_cli_info_with_region_cn_default():
+    """info 命令 --region 缺省为 cn，generate_road_info 收到 Region.CN"""
+    import tempfile
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+        f.write('index\n0\n')
+        csv_path = f.name
+    with patch('main.generate_road_info') as mock_info:
+        sys.argv = ['main.py', 'info', csv_path]
+        try:
+            main()
+            assert mock_info.call_args.args[0] == csv_path
+            assert mock_info.call_args.args[1] == Region.CN
+        except SystemExit:
+            pass
+        finally:
+            os.remove(csv_path)
+
+
+def test_cli_info_with_region_id():
+    """info 命令接收 --region id 并透传"""
+    import tempfile
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+        f.write('index\n0\n')
+        csv_path = f.name
+    with patch('main.generate_road_info') as mock_info:
+        sys.argv = ['main.py', 'info', csv_path, '--region', 'id']
+        try:
+            main()
+            assert mock_info.call_args.args[1] == Region.ID
+        except SystemExit:
+            pass
+        finally:
+            os.remove(csv_path)
