@@ -26,3 +26,5 @@ imageio
 
 # fontforge_export_svg.py
 # need to run in fontforge python environment
+
+requests

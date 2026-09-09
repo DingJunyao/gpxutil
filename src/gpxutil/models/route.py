@@ -506,7 +506,7 @@ class Route:
         :param area_code_conn: 存放行政区划代码关系的 SQLite 数据库连接。set_area == True，且不从 Nominatim 获取数据时必填
         :return: Route
         """
-        with open(gpx_file_path, 'r') as gpx_file:
+        with open(gpx_file_path, 'r', encoding='utf-8') as gpx_file:
             gpx = gpxpy.parse(gpx_file)
             return Route.from_gpx_obj(gpx, track_index, segment_index, transform_coordinate, coordinate_type, transformed_coordinate_type, set_area, source=source, area_gdf_list=area_gdf_list, area_code_conn=area_code_conn)
 
