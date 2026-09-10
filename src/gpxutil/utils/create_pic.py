@@ -397,16 +397,26 @@ def read_csv_with_additional_info(
     :param region 道路编号解析与多语言文本的地区体系，默认中国大陆
     :return: 整理好的字典数据
     """
-    dict_list = read_csv(path)[start_index:end_index]
-    dict_list = fill_missing_entries(dict_list)[start_index_after_fill:end_index_after_fill]
+    dict_list = read_csv(path)
+    # start_index / end_index 对应 CSV 的 index 列（闭区间），而不是行位置切片；
+    # index 列存在跳变时行位置与 index 值不一致
+    if start_index > 0 or end_index >= 0:
+        dict_list = [row for row in dict_list
+                     if int(row['index']) >= start_index
+                     and (end_index < 0 or int(row['index']) <= end_index)]
+    dict_list = fill_missing_entries(dict_list)
+    # start_index_after_fill / end_index_after_fill 是填补缺失帧后的行位置区间；
+    # end_index_after_fill 为 -1 时表示到最后（直接 [: -1] 会丢掉最后一行）
+    if start_index_after_fill > 0 or end_index_after_fill >= 0:
+        end = end_index_after_fill if end_index_after_fill >= 0 else len(dict_list)
+        dict_list = dict_list[start_index_after_fill:end]
     new_dict_list = []
     total_time = dict_list[-1]['elapsed_time'] - dict_list[0]['elapsed_time']
     total_distance = dict_list[-1]['distance'] - dict_list[0]['distance']
-    if crop_end < 0:
-        crop_end += len(dict_list)
     for i, row in tqdm(enumerate(dict_list), total=len(dict_list), desc='Processing dict', unit='point(s)'):
         new_row = row.copy()
-        if int(row['index']) < crop_start or int(row['index']) > crop_end:
+        # crop_end 为 -1 时表示不裁剪；旧的 len 近似在 index 列跳变时会误裁尾部行
+        if int(row['index']) < crop_start or (crop_end >= 0 and int(row['index']) > crop_end):
             continue
         new_row['real_index'] = i
         new_row['elapsed_time'] = row['elapsed_time'] - dict_list[0]['elapsed_time'] - start_index_after_fill if row[
