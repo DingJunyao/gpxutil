@@ -529,14 +529,15 @@ def calculate_centered_scaled_char_info(code: str, center_x: float, center_y: fl
 
 
 def generate_indonesia_shield(code: str, road_level: IndonesiaRoadLevel,
-                              province_code: str | None) -> Drawing:
+                              region_code: str | None) -> Drawing:
     """
     生成印尼六边形道路盾牌。布局由模板元素 bbox 推导。
     模板 id='text' 组为占位字形（display:none），不绘制，仅画背景与色带。
 
     :param code: 道路编号（盾牌大字），如 '3'、'024'；为空或 None 视为参数错误
     :param road_level: 道路等级，决定色带颜色与等级词
-    :param province_code: 省份代码（色带小字部分），可为 None
+    :param region_code: 地区代码（色带小字部分，NASIONAL/TOL 为省码、
+                        PROVINSI 为县市码），可为 None
     :return: svgwrite Drawing
     :raise ValueError: code 为空或 road_level 不在 IndonesiaRoadLevel 中
     """
@@ -554,8 +555,8 @@ def generate_indonesia_shield(code: str, road_level: IndonesiaRoadLevel,
         head_fill = blue
 
     banner_text = INDONESIA_LEVEL_BANNER_TEXT[road_level]
-    if province_code:
-        banner_text += f' {province_code}'
+    if region_code:
+        banner_text += f' {region_code}'
 
     width, height = get_svg_dimensions(cfg.template_path)
     head_bbox = get_element_bbox_by_id(cfg.template_path, 'head')
@@ -591,8 +592,8 @@ def generate_indonesia_shield(code: str, road_level: IndonesiaRoadLevel,
 
 
 def generate_indonesia_shield_to_file(code: str, road_level: IndonesiaRoadLevel,
-                                      province_code: str | None, path: str):
-    generate_indonesia_shield(code, road_level, province_code).saveas(path)
+                                      region_code: str | None, path: str):
+    generate_indonesia_shield(code, road_level, region_code).saveas(path)
 
 
 if __name__ == '__main__':

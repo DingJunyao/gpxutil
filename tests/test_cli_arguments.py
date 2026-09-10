@@ -10,6 +10,7 @@ from io import StringIO
 
 from main import main, transform_route_info_from_gpx_file
 from src.gpxutil.models.region import Region
+from src.gpxutil.models.indonesia import IndonesiaRoadLevel
 
 
 def test_cli_transform_command_with_all_parameters():
@@ -248,3 +249,63 @@ def test_cli_info_with_region_id():
             pass
         finally:
             os.remove(csv_path)
+
+
+def test_cli_pad_with_region_id():
+    """pad 命令 --region id 使用 IndonesiaRoad 解析并输出印尼盾牌"""
+    import tempfile
+    temp_svg = tempfile.mktemp(suffix='.svg')
+    mock_road = MagicMock()
+    mock_road.have_sign = True
+    mock_road.to_svg_file = MagicMock()
+    with patch('main.IndonesiaRoad', return_value=mock_road) as mock_road_cls:
+        sys.argv = ['main.py', 'pad', '3', temp_svg, '--region', 'id']
+        try:
+            main()
+            mock_road_cls.assert_called_once_with('3', None, [], force_tol=False)
+            mock_road.to_svg_file.assert_called_once_with(temp_svg)
+        except SystemExit:
+            pass
+        finally:
+            if os.path.exists(temp_svg):
+                os.remove(temp_svg)
+
+
+def test_cli_pad_with_region_id_and_province():
+    """pad 命令 --region id 时 --province 省名透传给 IndonesiaRoad"""
+    import tempfile
+    temp_svg = tempfile.mktemp(suffix='.svg')
+    mock_road = MagicMock()
+    mock_road.have_sign = True
+    mock_road.to_svg_file = MagicMock()
+    with patch('main.IndonesiaRoad', return_value=mock_road) as mock_road_cls:
+        sys.argv = ['main.py', 'pad', '024', temp_svg, '--region', 'id', '--province', '东爪哇省']
+        try:
+            main()
+            mock_road_cls.assert_called_once_with('024', None, ['东爪哇省'], force_tol=False)
+        except SystemExit:
+            pass
+        finally:
+            if os.path.exists(temp_svg):
+                os.remove(temp_svg)
+
+
+def test_cli_pad_with_region_id_and_tol():
+    """pad 命令 --region id --tol 将 force_tol 透传给 IndonesiaRoad"""
+    import tempfile
+    temp_svg = tempfile.mktemp(suffix='.svg')
+    mock_road = MagicMock()
+    mock_road.have_sign = True
+    mock_road.level = IndonesiaRoadLevel.TOL
+    mock_road.to_svg_file = MagicMock()
+    with patch('main.IndonesiaRoad', return_value=mock_road) as mock_road_cls:
+        sys.argv = ['main.py', 'pad', '8', temp_svg, '--region', 'id', '--tol']
+        try:
+            main()
+            mock_road_cls.assert_called_once_with('8', None, [], force_tol=True)
+            mock_road.to_svg_file.assert_called_once_with(temp_svg)
+        except SystemExit:
+            pass
+        finally:
+            if os.path.exists(temp_svg):
+                os.remove(temp_svg)

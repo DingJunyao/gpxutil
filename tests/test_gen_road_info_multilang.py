@@ -14,14 +14,14 @@ def test_indonesia_label_colors():
     # 1-2 位编号默认 NASIONAL 红色：label 层无路名，无法判定 TOL
     assert 'red' in gen_single_road_code('8', Region.ID)
     assert 'blue' in gen_single_road_code('023', Region.ID)
-    assert 'blue' in gen_single_road_code('35-024', Region.ID)
+    assert 'blue' in gen_single_road_code('16-024', Region.ID)
 
 
 def test_indonesia_label_plain_code():
-    # label 内为纯编号，不含省码
-    text = gen_single_road_code('35-024', Region.ID)
+    # label 内为纯编号，不含地区代码
+    text = gen_single_road_code('16-024', Region.ID)
     assert '024' in text
-    assert '35-024' not in text
+    assert '16-024' not in text
 
 
 def test_cn_backcompat():
@@ -50,20 +50,20 @@ def test_gen_route_info_id_multilang(tmp_path):
     csv_path.write_text(
         'index,province,city,area,province_id,city_id,area_id,province_en,city_en,area_en,road_num,road_name,road_name_id,road_name_en\n'
         '0,东爪哇省,玛琅县,安佩尔加丁镇,Provinsi Jawa Timur,Kabupaten Malang,Kecamatan Ampelgading,'
-        'Province of East Java,Malang Regency,Ampelgading District,023,图姆庞大街,Jl. Raya Tumpang,Tumpang Main Rd.\n',
+        'Province of East Java,Malang Regency,Ampelgading District,023,图姆庞大街,Jl. Raya Tumpang,Tumpang Main Rd.\n'
+        '1,东爪哇省,玛琅县,安佩尔加丁镇,Provinsi Jawa Timur,Kabupaten Malang,Kecamatan Ampelgading,'
+        'Province of East Java,Malang Regency,Ampelgading District,035-024,布兰塔斯街,Jl. Brantas,Brantas St.\n',
         encoding='utf-8'
     )
     city_list = get_info(str(csv_path), Region.ID)
     text = gen_route_info(city_list, Region.ID)
-    assert '{% timeline 东爪哇省 玛琅县（视频 XX:XX） %}' in text
-    assert '印尼语：Provinsi Jawa Timur · Kabupaten Malang' in text
-    assert '英语：Province of East Java · Malang Regency' in text
-    assert '<!-- timeline 安佩尔加丁镇（视频 XX:XX） -->' in text
-    assert '印尼语：Kecamatan Ampelgading' in text
-    assert '英语：Ampelgading District' in text
-    assert '{% label 023 blue %} 图姆庞大街' in text
-    assert '  Jl. Raya Tumpang' in text
-    assert '  Tumpang Main Rd.' in text
+    assert '{% timeline 东爪哇省 玛琅县（Kabupaten Malang, Provinsi Jawa Timur // Malang Regency, Province of East Java）（视频 XX:XX） %}' in text
+    assert '<!-- timeline 安佩尔加丁镇（Kecamatan Ampelgading // Ampelgading District）（视频 XX:XX） -->' in text
+    assert '{% label 023 blue %} 图姆庞大街（Jl. Raya Tumpang // Tumpang Main Rd.）' in text
+    assert ' → {% label 024 blue %} 布兰塔斯街（Jl. Brantas // Brantas St.）' in text
+    assert '印尼语：' not in text
+    assert '英语：' not in text
+    assert '  Jl. Raya Tumpang' not in text
     assert '{% endtimeline %}' in text
     assert '<!-- endtimeline -->' in text
 
@@ -84,10 +84,11 @@ def test_get_info_cn_multilang(tmp_path):
     assert area.names['en'] == 'Mianchi County'
     assert area.roads[0].names['en'] == 'Huanghe Rd.'
     text = gen_route_info(city_list, Region.CN)
-    assert '英语：Henan Province · Sanmenxia City' in text
-    assert '英语：Mianchi County' in text
-    assert '{% label G310 red %} 黄河路' in text
-    assert '  Huanghe Rd.' in text
+    assert '{% timeline 河南省 三门峡市（Sanmenxia City, Henan Province）（视频 XX:XX） %}' in text
+    assert '<!-- timeline 渑池县（Mianchi County）（视频 XX:XX） -->' in text
+    assert '{% label G310 red %} 黄河路（Huanghe Rd.）' in text
+    assert '英语：' not in text
+    assert '  Huanghe Rd.' not in text
 
 
 def test_cn_empty_secondary_keeps_plain_output(tmp_path):
@@ -114,18 +115,18 @@ def test_merge_itrchg_and_toll_station_single_line_unchanged():
     assert result == ['新安互通（新安收费站）']
 
 
-def test_merge_itrchg_and_toll_station_multiline_blocks():
-    """多行块：块以副语言行结尾，后缀判断须只看主行，互通+收费站仍合并；
-    合并后主行来自主导名称块，并保留该块的副语言行"""
-    hint_block = '{% label G3002 green %} 新安互通\n  新安互通英文\n  Xinan Interchange'
-    toll_block = '{% label G3002 green %} 新安收费站\n  Xinan Toll Station\n  新安收费站英语'
-    merged_main = '{% label G3002 green %} 新安互通（{% label G3002 green %} 新安收费站）'
+def test_merge_itrchg_and_toll_station_parenthesized_blocks():
+    """含副语言括注的单行块：后缀判断只看主名部分，互通+收费站仍合并；
+    收费站副语言括注不保留，主导块的副语言括注置于合并块末尾"""
+    hint_block = '{% label G3002 green %} 新安互通（Xinan Interchange）'
+    toll_block = '{% label G3002 green %} 新安收费站（Xinan Toll Station）'
+    merged = '{% label G3002 green %} 新安互通（{% label G3002 green %} 新安收费站）（Xinan Interchange）'
     # 互通在前
     result = merge_itrchg_and_toll_station([hint_block, toll_block])
-    assert result == [merged_main + '\n  新安互通英文\n  Xinan Interchange']
-    # 收费站在前：主名以互通块为准，副语言行亦取互通块
+    assert result == [merged]
+    # 收费站在前：主名以互通块为准，副语言括注亦取互通块
     result = merge_itrchg_and_toll_station([toll_block, hint_block])
-    assert result == [merged_main + '\n  新安互通英文\n  Xinan Interchange']
+    assert result == [merged]
 
 
 def test_gen_route_info_prev_area_empty_roads_no_crash():

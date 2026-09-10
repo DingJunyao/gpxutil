@@ -13,9 +13,6 @@ PROVINCIAL_HIGHWAY_TEMPLATE = "{% label {{code}} orange %}"
 OTHER_HIGHWAY_TEMPLATE = "{% label {{code}} white %}"
 EXPWY_TEMPLATE = "{% label {{code}} green %}"
 
-# timeline 副语言行前缀：主语言 zh 无前缀，副语言逐行对照
-LANG_PREFIX = {'zh': '', 'id': '印尼语：', 'en': '英语：'}
-
 # 印尼 label 等级颜色。注意：label 层无路名（tol 关键词不可见），
 # 1-2 位编号一律按 NASIONAL(red) 输出；等级->颜色映射保留以便后续按 RoadInfo 等级增强
 INDONESIA_LABEL_COLOR = {
@@ -24,11 +21,11 @@ INDONESIA_LABEL_COLOR = {
     IndonesiaRoadLevel.PROVINSI: 'blue',
 }
 
-CITY_TIMELINE_TEMPLATE = """{% timeline {{province}} {{city}}（视频 XX:XX） %}
-{{city_secondary}}{{areas_info}}
+CITY_TIMELINE_TEMPLATE = """{% timeline {{province}} {{city}}{{city_secondary}}（视频 XX:XX） %}
+{{areas_info}}
 {% endtimeline %}"""
-AREA_TIMELINE_TEMPLATE = """<!-- timeline {{area}}（视频 XX:XX） -->
-{{area_secondary}}{{road_info}}
+AREA_TIMELINE_TEMPLATE = """<!-- timeline {{area}}{{area_secondary}}（视频 XX:XX） -->
+{{road_info}}
 <!-- endtimeline -->"""
 
 # @dataclass
@@ -198,34 +195,35 @@ def gen_single_road_code(road_code: str, region: Region = Region.CN) -> str:
         return province + EXPWY_TEMPLATE.replace('{{code}}', road_code)
 
 def gen_single_road_info(road: RoadInfo, region: Region = Region.CN) -> str:
-    """道路主行（label + 主语言路名），副语言路名以两个空格缩进逐行附加"""
+    """道路单行（label + 主语言路名），副语言路名以「（副1 // 副2）」括注于主名后"""
     primary, secondary = get_default_languages(region)
     if not road.code and not (road.names.get(primary) or ''):
         return ""
     road_text = ' / '.join([gen_single_road_code(code, region) for code in road.code]) \
         + (" " if road.code else "") \
         + (road.names.get(primary) or '')
-    for lang in secondary:
-        name = road.names.get(lang) or ''
-        if name:
-            road_text += '\n  ' + name
+    secondary_names = [name for name in (road.names.get(lang) or '' for lang in secondary) if name]
+    if secondary_names:
+        road_text += '（' + ' // '.join(secondary_names) + '）'
     return road_text
 
 def split_road_block(block: str) -> tuple[str, str]:
-    """把道路块拆分为 (主行, 副语言行)。单行块（无副语言）副语言部分为空字符串"""
-    parts = block.split('\n', 1)
-    main_line = parts[0]
-    tail = parts[1] if len(parts) > 1 else ''
-    return main_line, tail
+    """把道路块拆分为 (主名部分, 副语言括注)。主名部分为第一个全角左括号前的文本，
+    副语言括注含括号；单行块（无括注）副语言部分为空字符串"""
+    parts = block.split('（', 1)
+    main_part = parts[0]
+    tail = '（' + parts[1] if len(parts) > 1 else ''
+    return main_part, tail
 
 
 def merge_itrchg_and_toll_station(in_list):
     """处理立交和收费站的合并事宜。列表中如果有“互通”“立交”“枢纽”“入口”“出口”和“收费站”结尾的项目相连，则合并为 “XX互通/立交/枢纽（XXX收费站）
 
-    多语言多行块以副语言行（英文等）结尾，endswith 检测若作用于整块将永不命中；
-    故后缀判断只看每块的主行（首行）。合并后的主行以“主导名称”块（情况1 的当前块、
-    情况2 的下一块，即不带括号的那一方）为准，并保留该块的副语言行；被并入括号的
-    （收费站）块不带编号/无独立主名，其副语言行不保留。
+    道路块可能带副语言括注（如「新安互通（Xinan Interchange）」），endswith 检测
+    若作用于整块将永不命中；故后缀判断只看每块的主名部分（split_road_block 的
+    第一部分）。合并后的主名以“主导名称”块（情况1 的当前块、情况2 的下一块，
+    即不带括号的那一方）为准，并保留该块的副语言括注（置于合并块末尾）；被并入
+    括号的（收费站）块不带编号/无独立主名，其副语言括注不保留。
     """
     hint_words = ["互通", "立交", "枢纽", "入口", "出口"]  # 指示词后缀
     toll_suffix = "收费站"  # 收费站后缀
@@ -247,18 +245,14 @@ def merge_itrchg_and_toll_station(in_list):
         current_main, current_tail = split_road_block(current)
         next_main, next_tail = split_road_block(next_item)
 
-        # 情况1：当前是指示词，下一个是收费站（主名与副语言行均取当前互通块）
+        # 情况1：当前是指示词，下一个是收费站（主名与副语言括注均取当前互通块）
         if any(current_main.endswith(word) for word in hint_words) and next_main.endswith(toll_suffix):
-            merged = f"{current_main}（{next_main}）"
-            if current_tail:
-                merged += '\n' + current_tail
+            merged = f"{current_main}（{next_main}）" + current_tail
             should_merge = True
 
-        # 情况2：当前是收费站，下一个是指示词（主名与副语言行均取下一互通块）
+        # 情况2：当前是收费站，下一个是指示词（主名与副语言括注均取下一互通块）
         elif current_main.endswith(toll_suffix) and any(next_main.endswith(word) for word in hint_words):
-            merged = f"{next_main}（{current_main}）"
-            if next_tail:
-                merged += '\n' + next_tail
+            merged = f"{next_main}（{current_main}）" + next_tail
             should_merge = True
 
         # 执行合并或添加单独项
@@ -344,8 +338,8 @@ def gen_route_info(city_info_list: list[CityInfo], region: Region = Region.CN) -
     {% endtimeline %}
 
     兼容性前提：CN 地区输出与旧版字节级一致，仅当 CSV 的 *_en 字段全部为空。若 *_en 非空，
-    将按语言集（副语言 en）额外输出「英语：」区/市对照行与缩进路名行——这是有意的能力扩展；
-    ID 地区同理输出印尼语/英语对照行。
+    将按语言集（副语言 en）额外输出括注于中文名后的区/市多语言名（副1 // 副2）与括注路名——
+    这是有意的能力扩展；ID 地区同理输出印尼语/英语括注。
     """
     primary, secondary = get_default_languages(region)
     city_timeline_text = ''
@@ -353,7 +347,8 @@ def gen_route_info(city_info_list: list[CityInfo], region: Region = Region.CN) -
     for city_i, city in enumerate(city_info_list):
         area_timeline_text = ''
         area_road_list = []
-        # 城市级副语言对照行：省名 · 城市名（逐行带语言前缀）
+        # 城市级副语言：括注于中文名后，语言间以 // 连接。
+        # 各语言习惯小地名在前（市, 省），与中文「省 市」顺序相反
         city_secondary_lines = []
         for lang in secondary:
             pair = city.names.get(lang)
@@ -361,8 +356,8 @@ def gen_route_info(city_info_list: list[CityInfo], region: Region = Region.CN) -
                 continue
             parts = [value for value in pair if value]
             if parts:
-                city_secondary_lines.append(LANG_PREFIX[lang] + ' · '.join(parts))
-        city_secondary_text = ''.join(line + '\n' for line in city_secondary_lines)
+                city_secondary_lines.append(', '.join(reversed(parts)))
+        city_secondary_text = ('（' + ' // '.join(city_secondary_lines) + '）') if city_secondary_lines else ''
         for area_i, area in enumerate(city.areas):
             road_text_list = [gen_single_road_info(road, region) for road in area.roads]
             road_text_list = merge_itrchg_and_toll_station(road_text_list)
@@ -382,13 +377,9 @@ def gen_route_info(city_info_list: list[CityInfo], region: Region = Region.CN) -
                     # prev_roads 是已（或将）存入 city_road_list 的同一列表对象，原地修改生效
                     prev_roads[-1] = prev_roads[-1] + '…'
             area_road_list.append(road_text_list)
-            # 区级副语言对照行：仅区名（逐行带语言前缀）
-            area_secondary_lines = []
-            for lang in secondary:
-                area_name = area.names.get(lang) or ''
-                if area_name:
-                    area_secondary_lines.append(LANG_PREFIX[lang] + area_name)
-            area_secondary_text = ''.join(line + '\n' for line in area_secondary_lines)
+            # 区级副语言：仅区名（括注于中文名后，语言间以 // 连接）
+            area_secondary_names = [name for name in (area.names.get(lang) or '' for lang in secondary) if name]
+            area_secondary_text = ('（' + ' // '.join(area_secondary_names) + '）') if area_secondary_names else ''
             area_timeline_text += '\n' + AREA_TIMELINE_TEMPLATE \
                 .replace('{{area}}', area.names.get(primary, '')) \
                 .replace('{{area_secondary}}', area_secondary_text)
@@ -400,9 +391,8 @@ def gen_route_info(city_info_list: list[CityInfo], region: Region = Region.CN) -
             .replace('{{areas_info}}', area_timeline_text)
     for city_roads in city_road_list:
         for area_roads in city_roads:
-            # 道路均为单行（无副语言路名）时沿用 → 连接；含副语言行则逐块换行
-            sep = ' → ' if all('\n' not in item for item in area_roads) else '\n'
-            city_timeline_text = city_timeline_text.replace('{{road_info}}', sep.join(area_roads), 1)
+            # 道路块均为单行（副语言以括注附于主行），统一以 → 连接
+            city_timeline_text = city_timeline_text.replace('{{road_info}}', ' → '.join(area_roads), 1)
     return city_timeline_text
 
 

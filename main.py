@@ -8,6 +8,8 @@ from geopandas import GeoDataFrame
 from src.gpxutil.core.config import CONFIG_HANDLER
 from src.gpxutil.models.region import Region
 from src.gpxutil.models.route import Route
+from src.gpxutil.models.road import IndonesiaRoad
+from src.gpxutil.models.indonesia import IndonesiaRoadLevel
 from src.gpxutil.utils.create_pic import generate_pic_from_csv
 from src.gpxutil.utils.gen_road_info import gen_route_info, get_info, read_csv
 from src.gpxutil.utils.svg_gen import generate_expwy_pad, generate_way_num_pad
@@ -93,6 +95,9 @@ def main():
     pad_parser.add_argument('code', help='road code (eg. G318， G30, G0102, 苏S88, S111)')
     pad_parser.add_argument('output_svg', nargs='?', help='Output SVG file path (optional)')
     pad_parser.add_argument('--name', nargs='?', help='name of the road (optional, only for expressway)')
+    pad_parser.add_argument('--region', choices=['cn', 'id'], default='cn', help='地区：cn=中国大陆，id=印尼')
+    pad_parser.add_argument('--tol', action='store_true', help='强制按收费公路（TOL）生成，仅 region=id 且编号为 1-2 位数字时有效')
+    pad_parser.add_argument('--province', nargs='?', help='省份（印尼语/中文/英文名，或省级地区代码如 16），仅 region=id 时有效，用于盾牌色带上的省级地区代码（县市代码请在编号中内嵌，如 16.17-024）')
     
     # Subparser for CSV to image sequence
     csv_parser = subparsers.add_parser('overlay', help='Generate image sequence from CSV file')
@@ -197,16 +202,30 @@ def main():
 
         print(f"Generating SVG num pad for code: {code}")
         print(f"Output SVG file: {output_svg_file_path}")
-        # 第一位为大写字母，则为国道、省道等普通道路，或者是国家高速
-        if code[0] in string.ascii_uppercase:
-            if len(code) == 4:
-                svg_drawing = generate_way_num_pad(code)
-            else:
-                svg_drawing = generate_expwy_pad(code, name=args.name)
-        # 否则为省级高速，从第一位读省简称
+        if args.region == 'id':
+            # 印尼道路：1-2 位数字为国道（NASIONAL），路名含收费关键词或指定 --tol 时为收费公路（TOL），
+            # 3 位数字为省道（PROVINSI）；地区代码可内嵌（如 '16-024' 省码、'16.17-024' 县市码）
+            # 或用 --province 指定省份
+            road = IndonesiaRoad(code, args.name, [args.province] if args.province else [],
+                                 force_tol=args.tol)
+            if not road.have_sign:
+                print(f'Error: 无法识别的印尼道路编号: {code}', file=sys.stderr)
+                sys.exit(1)
+            if args.tol and road.level is not IndonesiaRoadLevel.TOL:
+                print('Error: --tol 仅适用于 1-2 位数字的道路编号', file=sys.stderr)
+                sys.exit(1)
+            road.to_svg_file(output_svg_file_path)
         else:
-            svg_drawing = generate_expwy_pad(code[1:], province=code[0], name=args.name)
-        svg_drawing.saveas(output_svg_file_path)
+            # 第一位为大写字母，则为国道、省道等普通道路，或者是国家高速
+            if code[0] in string.ascii_uppercase:
+                if len(code) == 4:
+                    svg_drawing = generate_way_num_pad(code)
+                else:
+                    svg_drawing = generate_expwy_pad(code, name=args.name)
+            # 否则为省级高速，从第一位读省简称
+            else:
+                svg_drawing = generate_expwy_pad(code[1:], province=code[0], name=args.name)
+            svg_drawing.saveas(output_svg_file_path)
         print("SVG num pad generation completed successfully.")
     elif args.command == 'info':
         input_csv_file_path = args.input

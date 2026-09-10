@@ -37,6 +37,21 @@ traffic_sign:
     C: asset/font/jtbz_C.ttf
 ```
 
+印尼盾牌（`--region id`）使用 ClearviewHwy 字体（可从 [Roadgeek 字体](https://github.com/sammdot/roadgeek-fonts) 仓库中获取），以及六边形模板，需在配置文件中填写：
+
+```yaml
+traffic_sign:
+  indonesia_road_sign:
+    template: asset/template/id_sheild.svg
+    # 用于从道路名称中判定收费公路（TOL）的关键词
+    tol_keywords: ['收费', 'Tol']
+    font:
+      upper: asset/font/ClearviewHwy1W.ttf
+      upper_height: 45
+      lower: asset/font/ClearviewHwy2W.ttf
+      lower_height: 135
+```
+
 ### 生成信息图的图像序列：字体
 
 记住字体路径，修改配置文件：
@@ -201,18 +216,27 @@ CSV 文件格式为 UTF-8 带 BOM，列包括：
 17. `province_en`：省级区划的英文（目前需自行填写）
 18. `city_en`：地级区划的英文（目前需自行填写）
 19. `area_en`：县级区划的英文（目前需自行填写）
-20. `road_num`：当前道路编号（需自行填写；省级高速需写为诸如 `晋S75` 的形式；如果有多个道路编号，则用 `,` 分割；其他情况参见 `svg_gen.py`）
+20. `road_num`：当前道路编号（需自行填写；省级高速需写为诸如 `晋S75` 的形式；如果有多个道路编号，则用 `,` 分割；其他情况参见 `svg_gen.py`；印尼场景填写 `3`、`023`、`16-024`、`16.17-024` 形式，见「生成道路编号标志」）
 21. `road_name`：当前道路名称（需自行填写）
 22. `road_name_en`：当前道路名称的英文（需自行填写）
 23. `memo`：备注（无实际用途）
 
+对于印尼（`--region id`）等地区，除上述列外还会读取以下列（需自行填写印尼语；区域信息数据源见下方 `area_info`，中国的四种方式均以中国区划为准）：
+
+- `province_id`：省级区划的印尼语
+- `city_id`：地级区划的印尼语
+- `area_id`：县级区划的印尼语
+- `road_name_id`：道路名称的印尼语
+
 ### 生成道路编号标志
 
-参考 [GB 5768.2-2022]((https://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=15B1FC09EE1AE92F1A9EC97BA3C9E451)) 标准。
+输出 SVG 格式的文件。按地区分为两套样式：中国大陆路牌与印尼六边形盾牌，通过 `--region` 参数（`cn` / `id`，默认 `cn`）选择。输出文件不填时，默认输出到工作目录下，名称为道路编号。
+
+#### 中国大陆（默认）
+
+参考 [GB 5768.2-2022](https://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=15B1FC09EE1AE92F1A9EC97BA3C9E451) 标准。
 
 暂不支持京津冀高速，且只做了汉语版本的。
-
-输出 SVG 格式的文件。
 
 ```bash
 python main.py pad 道路编号 [输出文件] [--name 道路名称]
@@ -223,9 +247,55 @@ python main.py pad G42 --name 沪蓉高速
 
 道路编号同时支持高速公路、国道、省道等。如果为省级高速，需填写为类似于 `苏S88` 的形式。
 
-输出文件不填时，默认输出到工作目录下，名称为道路编号。
-
 只有填写了道路名称，才会输出含道路名称的路牌。仅适用于高速公路。
+
+#### 印尼（`--region id`）
+
+```bash
+python main.py pad 道路编号 [输出文件] --region id [--tol] [--province 省份] [--name 道路名称]
+# 如
+python main.py pad 3 --region id
+python main.py pad 8 --region id --tol
+python main.py pad 8 --region id --name '泗水-波龙收费公路'
+python main.py pad 024 --region id --province '东爪哇省'
+python main.py pad 16-024 --region id
+python main.py pad 16.17-024 --region id
+```
+
+道路编号格式：
+
+- 1~2 位数字：国道（NASIONAL）；指定 `--tol`，或 `--name` 中包含配置项 `tol_keywords`（默认 `收费`、`Tol`）的关键词时，判定为收费公路（TOL）。两者的色带均为红色（盾牌生成不包含道路名称，故通常用 `--tol` 区分）
+- 3 位数字：省道（PROVINSI），色带为蓝色
+
+依据 [Peraturan Dirjen Hubdat KP.1324/AJ.001/DRJD/2019](http://jdih.dephub.go.id/assets/uudocs/pEI/2019/KP.1324_.AJ_.001_.DRJD_.2019_.pdf)（道路编号指南），色带上的地区代码（kode wilayah）**与行政区划代码（BPS）不是同一套**：省级代码是交通部自定的 1-34 序号（如东爪哇为 `16`，而非 BPS 的 `35`），省道色带更是写县市代码而非省代码。地区代码有三种指定方式：
+
+- 内嵌在编号中：省级代码如 `16-024`（东爪哇 024 号省道）；县市代码如 `16.17-024`（东爪哇第 17 个县市的 024 号省道，`省码.省内序号` 格式）
+- 用 `--province` 指定省份：接受印尼语名（`Provinsi Jawa Timur`）、中文名（`东爪哇省`）、英文名（`Province of East Java`）或省级地区代码（`16`），只提供省级代码
+- 均未指定时色带上只有等级词
+
+省级地区代码（kode wilayah provinsi）与 BPS 代码对照：
+
+| 代码 | 省 | BPS 码 | | 代码 | 省 | BPS 码 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 亚齐 | 11 | | 18 | 西努沙登加拉 | 52 |
+| 2 | 北苏门答腊 | 12 | | 19 | 东努沙登加拉 | 53 |
+| 3 | 廖内 | 14 | | 20 | 西加里曼丹 | 61 |
+| 4 | 西苏门答腊 | 13 | | 21 | 中加里曼丹 | 62 |
+| 5 | 占碑 | 15 | | 22 | 南加里曼丹 | 63 |
+| 6 | 南苏门答腊 | 16 | | 23 | 东加里曼丹 | 64 |
+| 7 | 明古鲁 | 17 | | 24 | 北加里曼丹 | 65 |
+| 8 | 楠榜 | 18 | | 25 | 南苏拉威西 | 73 |
+| 9 | 廖内群岛 | 21 | | 26 | 西苏拉威西 | 76 |
+| 10 | 邦加勿里洞 | 19 | | 27 | 东南苏拉威西 | 74 |
+| 11 | 万丹 | 36 | | 28 | 中苏拉威西 | 72 |
+| 12 | 西爪哇 | 32 | | 29 | 哥伦打洛 | 75 |
+| 13 | 雅加达 | 31 | | 30 | 北苏拉威西 | 71 |
+| 14 | 中爪哇 | 33 | | 31 | 马鲁古 | 81 |
+| 15 | 日惹 | 34 | | 32 | 北马鲁古 | 82 |
+| 16 | 东爪哇 | 35 | | 33 | 西巴布亚 | 92 |
+| 17 | 巴厘 | 51 | | 34 | 巴布亚 | 91 |
+
+县市代码（`省码.省内序号`）取自法规附表，多数省的序号与 BPS 县市代码后两位一致（如中爪哇 Rembang 县的法规代码 `14.17`、BPS 代码 `3317`），可参考使用。
 
 颜色为自己根据 [Roadgeek 字体](https://github.com/sammdot/roadgeek-fonts)里面提到的颜色定的，考虑了屏幕显示的问题。如果要改对应的颜色，可以修改配置文件：
 
@@ -237,6 +307,7 @@ traffic_sign:
     yellow: '#FFCD00'
     black: '#000000'
     green: '#006E55'
+    blue: '#003E86'
 ```
 
 ### 生成信息图的每一帧
@@ -257,16 +328,21 @@ python main.py overlay "E:\t\test.csv" "E:\t\overlay\"
 4. `--end_index_after_fill`：填补缺失帧之后的结束的序号（用于与视频对齐，填写秒数）
 5. `--crop_start`：输出帧的序号起始，用于修改特定范围内的帧。对应 CSV 文件的 `index` 列。
 6. `--crop_end`：输出帧的序号结束，用于修改特定范围内的帧。对应 CSV 文件的 `index` 列。
+7. `--region`：地区体系，可选 `cn`（默认，中国大陆）或 `id`（印尼）。决定道路编号的解析方式（印尼见「生成道路编号标志」）与区域、路名的文本行语言集。
 
 读取的 CSV 文件应为 UTF-8 带 BOM 编码（因为经过修改后，很多情况下都存为这个编码的）。
+
+`--region id` 时，区域与路名文本行按中文、印尼语、英文三行组装，印尼语与英文分别读取 CSV 的 `_id`、`_en` 后缀列（见「读取 GPX 文件，导出为 CSV 文件」的列说明）；`--region cn` 时只组装中文与英文两行。
 
 ### 根据修改后的 CSV 文件，生成经由区域与道路的时间线
 
 根据修改后的 CSV 文件，生成经由区域与道路的时间线。为方便自己写博客而编写。
 
 ```bash
-python main.py info "CSV 文件"
+python main.py info "CSV 文件" [--region cn|id]
 ```
+
+`--region` 含义同「生成信息图的每一帧」，决定时间线中道路编号标签的样式与文本语言。印尼（`--region id`）时道路编号标签按印尼道路等级着色（国道红色、收费公路绿色、省道蓝色），区域文本读取 `_id`、`_en` 后缀列。
 
 输出结果如下：
 

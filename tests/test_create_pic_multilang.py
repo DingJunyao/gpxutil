@@ -11,7 +11,7 @@ ID_ROW = {
     'province': '东爪哇省', 'city': '玛琅县', 'area': '安佩尔加丁镇',
     'province_id': 'Provinsi Jawa Timur', 'city_id': 'Kabupaten Malang', 'area_id': 'Kecamatan Ampelgading',
     'province_en': 'Province of East Java', 'city_en': 'Malang Regency', 'area_en': 'Ampelgading District',
-    'road_num': '35-024', 'road_name': '图卢斯阿尤大街',
+    'road_num': '16-024', 'road_name': '图卢斯阿尤大街',
     'road_name_id': 'Jl. Raya Tulus Ayu', 'road_name_en': 'Tulus Ayu Main Rd.',
 }
 

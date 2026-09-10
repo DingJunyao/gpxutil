@@ -108,11 +108,13 @@ class RoadGroup:
 
 
 class IndonesiaRoad(Road):
-    def __init__(self, road_num: str = None, road_name: str = None, province_texts: list[str] = None):
+    def __init__(self, road_num: str = None, road_name: str = None, province_texts: list[str] = None,
+                 force_tol: bool = False):
         """
-        :param road_num: CSV road_num 字段，如 '3'、'023'、'35-024'
+        :param road_num: CSV road_num 字段，如 '3'、'023'、'16-024'、'16.17-024'
         :param road_name: CSV road_name 字段（中文），用于 TOL 关键词判断
-        :param province_texts: 候选省份文本（印尼语名、中文名），用于查省份代码
+        :param province_texts: 候选省份文本（印尼语/中文/英文省名，或省级地区代码），用于查省份代码
+        :param force_tol: 强制按收费公路（TOL）解析，仅 1-2 位编号有效
         """
         from src.gpxutil.core.config import CONFIG_HANDLER
         self.name = road_name
@@ -120,16 +122,17 @@ class IndonesiaRoad(Road):
         self.road_num = road_num
         info = parse_indonesia_road_num(
             road_num, road_name, province_texts or [],
-            CONFIG_HANDLER.config.traffic_sign.indonesia_road_sign.tol_keywords
+            CONFIG_HANDLER.config.traffic_sign.indonesia_road_sign.tol_keywords,
+            force_tol=force_tol
         )
         self.level: IndonesiaRoadLevel | None = info.level if info else None
         self.code: str | None = info.code if info else None
-        self.province_code: str | None = info.province_code if info else None
+        self.region_code: str | None = info.region_code if info else None
         self.have_sign = info is not None
 
     def to_svg(self):
         from src.gpxutil.utils.svg_gen import generate_indonesia_shield
-        return generate_indonesia_shield(self.code, self.level, self.province_code)
+        return generate_indonesia_shield(self.code, self.level, self.region_code)
 
     def to_svg_file(self, path: str):
         self.to_svg().saveas(path)

@@ -183,7 +183,7 @@ def parse_road_signs(row: dict, region: Region) -> list[Drawing]:
             continue
         if region == Region.ID:
             road = IndonesiaRoad(road_sign, row.get('road_name'),
-                                 [row.get('province_id'), row.get('province')])
+                                 [row.get('province_id'), row.get('province'), row.get('province_en')])
             drawing = road.to_svg() if road.have_sign else None
         else:
             # 中国现状逻辑
