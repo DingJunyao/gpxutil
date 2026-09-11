@@ -365,7 +365,9 @@ class ConfigHandler:
         video_info_layer_font_path = VideoInfoLayerFontPathConfig(
             chinese=config_raw['video_info_layer']['font_path']['chinese'],
             chinese_index=config_raw['video_info_layer']['font_path']['chinese_index'],
-            english=config_raw['video_info_layer']['font_path']['english']
+            english=config_raw['video_info_layer']['font_path']['english'],
+            # 可选键：旧配置缺失时为 None，渲染时回退 english 正体
+            english_italic=config_raw['video_info_layer']['font_path'].get('english_italic')
         )
 
         video_info_layer_img_path = VideoInfoLayerImgPathConfig(

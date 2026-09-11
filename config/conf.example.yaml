@@ -45,6 +45,7 @@ video_info_layer:
     chinese: asset/font/SourceHanSans_static_super_otc.ttc
     chinese_index: 12
     english: asset/font/SourceSans3-Regular.otf
+    english_italic: asset/font/SourceSans3-It.otf
   img_path:
     compass: asset/compass.svg
     route_time_sep: asset/route_time_sep.svg\

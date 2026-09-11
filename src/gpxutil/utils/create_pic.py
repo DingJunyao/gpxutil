@@ -28,6 +28,8 @@ from .svg_gen import generate_way_num_pad, generate_expwy_pad
 chinese_font_path = CONFIG_HANDLER.config.video_info_layer.font_path.chinese
 chinese_font_index = CONFIG_HANDLER.config.video_info_layer.font_path.chinese_index
 english_font_path = CONFIG_HANDLER.config.video_info_layer.font_path.english
+# 印尼语行专用斜体字体，未配置（None/空）时回退英文正体
+english_italic_font_path = CONFIG_HANDLER.config.video_info_layer.font_path.english_italic or english_font_path
 compass_img_path = CONFIG_HANDLER.config.video_info_layer.img_path.compass
 route_time_sep_img_path = CONFIG_HANDLER.config.video_info_layer.img_path.route_time_sep
 try:
@@ -64,14 +66,16 @@ def _get_font(font_path, font_size, font_index=0):
     return _font_cache[key]
 
 
-def _get_line_font(line_index, font_size):
-    """按行选择字体：第 0 行为主语言（中文），其余行为副语言（英文），字号取该行配置
+def _get_line_font(lang, font_size):
+    """按行语言选择字体：zh 用中文字体；id 用副语言斜体（未配置时回退正体）；其余副语言用英文字体。
 
-    注意：行号是文本行列表过滤空行后的序号。若主语言文本缺失被剔除，次级语言会顶到
-    第 0 行而按中文渲染；现有语言配置下主语言恒为 zh，不会出现该情况。
+    语言与行号解耦：某语言文本缺失被剔除后，其余行按各自语言选字体，
+    不会因行号位移错用字体（如印尼语缺失时英语上移仍为正体）。
     """
-    if line_index == 0:
+    if lang == 'zh':
         return _get_font(chinese_font_path, font_size, chinese_font_index)
+    if lang == 'id':
+        return _get_font(english_italic_font_path, font_size)
     return _get_font(english_font_path, font_size)
 
 
@@ -89,7 +93,7 @@ def calc_line_positions(texts, lines, bottom_y, gap):
     最后一行锚定 bottom_y，其余行按各自实际渲染占位高度（ascent+descent，中文
     明显高于副语言）向上堆叠，相邻行间留 gap 空隙。行数增减时上方行（含主语言
     中文行）自然上下移动，最后一行位置恒定。
-    :param texts: 文本行列表（已过滤空行）
+    :param texts: (语言, 文本) 行列表（已过滤空行），语言用于按行选字体
     :param lines: 配置行列表（取前 len(texts) 行，只消费 font_size）
     :param bottom_y: 最后一行文本的顶部 y
     :param gap: 相邻行的视觉空隙
@@ -97,7 +101,8 @@ def calc_line_positions(texts, lines, bottom_y, gap):
     """
     if not texts:
         return [], []
-    fonts = [_get_line_font(i, line.font_size) for i, line in enumerate(lines[:len(texts)])]
+    fonts = [_get_line_font(lang, line.font_size)
+             for (lang, _), line in zip(texts, lines[:len(texts)])]
     heights = [sum(font.getmetrics()) for font in fonts]
     tops = [0] * len(texts)
     tops[-1] = bottom_y
@@ -143,32 +148,38 @@ def svg_drawing_to_img(svg_drawing: Drawing):
     return Image.open(io.BytesIO(svg))
 
 
-def build_area_texts(row: dict, region: Region) -> list[str]:
-    """按语言集组装区域文本行：[主语言, 副语言...]，空行剔除"""
+def build_area_texts(row: dict, region: Region) -> list[tuple[str, str]]:
+    """按语言集组装区域文本行：[(语言, 文本)...]，顺序 [主语言, 副语言...]，空行剔除。
+
+    保留语言代码供渲染层选字体（印尼语行用斜体字体）。
+    """
     primary, secondary = get_default_languages(region)
     texts = []
     # 主语言 zh：空格正序拼接
     if primary == 'zh':
-        texts.append(' '.join([i for i in [row['province'], row['city'], row['area']] if i]))
+        texts.append((primary, ' '.join([i for i in [row['province'], row['city'], row['area']] if i])))
     else:
-        texts.append(', '.join([i for i in [row[f'area{get_field_suffix(primary)}'],
-                                            row[f'city{get_field_suffix(primary)}'],
-                                            row[f'province{get_field_suffix(primary)}']] if i]))
+        texts.append((primary, ', '.join([i for i in [row[f'area{get_field_suffix(primary)}'],
+                                                    row[f'city{get_field_suffix(primary)}'],
+                                                    row[f'province{get_field_suffix(primary)}']] if i])))
     # 副语言：逗号倒序拼接（同现状英文语序）
     for lang in secondary:
         text = ', '.join([i for i in [row[f'area{get_field_suffix(lang)}'],
                                       row[f'city{get_field_suffix(lang)}'],
                                       row[f'province{get_field_suffix(lang)}']] if i])
-        texts.append(text)
-    return [t for t in texts if t]
+        texts.append((lang, text))
+    return [t for t in texts if t[1]]
 
 
-def build_road_texts(row: dict, region: Region) -> list[str]:
-    """按语言集组装路名文本行：[主语言, 副语言...]，空行剔除"""
+def build_road_texts(row: dict, region: Region) -> list[tuple[str, str]]:
+    """按语言集组装路名文本行：[(语言, 文本)...]，顺序 [主语言, 副语言...]，空行剔除。
+
+    保留语言代码供渲染层选字体（印尼语行用斜体字体）。
+    """
     primary, secondary = get_default_languages(region)
     langs = [primary] + secondary
-    texts = [row[f'road_name{get_field_suffix(lang)}'] or '' for lang in langs]
-    return [t for t in texts if t]
+    texts = [(lang, row[f'road_name{get_field_suffix(lang)}'] or '') for lang in langs]
+    return [t for t in texts if t[1]]
 
 
 def parse_road_signs(row: dict, region: Region) -> list[Drawing]:
@@ -206,7 +217,7 @@ def generate_pic(area_texts, road_texts, road_sign_list, compass_angle, used_rou
                  remain_route, remain_time, altitude, speed):
     """
     根据信息生成信息图
-    :param area_texts: 区域文本行列表，[0]=主语言（大字），[1:]=副语言（小字）
+    :param area_texts: 区域文本行列表，每行为 (语言, 文本)，[0]=主语言（大字），[1:]=副语言（小字）
     :param road_texts: 路名文本行列表，同上
     :param road_sign_list: 当前道路编号标牌的 SVG 列表，如 [generate_way_num_pad('G310'), generate_way_num_pad('S209'), generate_expwy_pad('S0211', '豫')]
     :param compass_angle: 指南针角度
@@ -218,7 +229,8 @@ def generate_pic(area_texts, road_texts, road_sign_list, compass_angle, used_rou
     :param speed: 速度
     :return: image
 
-    区域与路名均按 [0]=主语言（中文大字）、[1:]=副语言（小字）逐行与配置行 zip 配对渲染；
+    区域与路名均按 [0]=主语言（中文大字）、[1:]=副语言（小字）逐行与配置行 zip 配对渲染，
+    字体按各行语言分派（zh 中文、id 斜体、其余英文正体）；
     配置行数须不小于文本行数，超出配置的文本行会被截断不绘制。
     """
     image = Image.new(mode='RGBA', size=image_size)
@@ -227,7 +239,7 @@ def generate_pic(area_texts, road_texts, road_sign_list, compass_angle, used_rou
     # 当前区域：主语言大字 + 副语言小字逐行，行坐标自下而上按实际文本高度堆叠（见 calc_line_positions）
     area_cfg = CONFIG_HANDLER.config.video_info_layer.frame.area
     area_tops, area_fonts = calc_line_positions(area_texts, area_cfg.lines, area_cfg.bottom_y, area_cfg.line_gap)
-    for i, (text, line) in enumerate(zip(area_texts, area_cfg.lines)):
+    for i, ((_, text), line) in enumerate(zip(area_texts, area_cfg.lines)):
         line_x = line.x if line.x is not None else 0
         draw_table.text(xy=(line_x, area_tops[i]), text=text, fill=font_color, font=area_fonts[i])
 
@@ -248,7 +260,7 @@ def generate_pic(area_texts, road_texts, road_sign_list, compass_angle, used_rou
     road_cfg = CONFIG_HANDLER.config.video_info_layer.frame.road
     road_tops, road_fonts = calc_line_positions(road_texts, road_cfg.lines, road_cfg.bottom_y, road_cfg.line_gap)
     max_right_x = road_sign_offset
-    for i, (text, line) in enumerate(zip(road_texts, road_cfg.lines)):
+    for i, ((_, text), line) in enumerate(zip(road_texts, road_cfg.lines)):
         font = road_fonts[i]
         draw_table.text(xy=(road_sign_offset, road_tops[i]), text=text, fill=font_color, font=font)
         # 记录所有文本行的右边界，后续判断是否移动指南针位置
@@ -515,8 +527,8 @@ def generate_pic_from_csv(path: str, start_index=0, end_index=-1, start_index_af
 
 if __name__ == '__main__':
     # img = generate_pic(
-    #     area_texts=['河南省 三门峡市 渑池县', 'Mianchi County, Sanmenxia City, Henan Province'],
-    #     road_texts=['黄河路', 'Huanghe Rd.'],
+    #     area_texts=[('zh', '河南省 三门峡市 渑池县'), ('en', 'Mianchi County, Sanmenxia City, Henan Province')],
+    #     road_texts=[('zh', '黄河路'), ('en', 'Huanghe Rd.')],
     #     # road_sign_list=[generate_way_num_pad('G310')],
     #     road_sign_list=None,
     #     compass_angle=233,

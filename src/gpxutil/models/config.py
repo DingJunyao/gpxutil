@@ -183,6 +183,8 @@ class VideoInfoLayerFontPathConfig:
     chinese: str
     english: str
     chinese_index: int = 0
+    # 副语言斜体字体（印尼语行专用），未配置时回退 english 正体
+    english_italic: str | None = None
 
 @dataclass
 class VideoInfoLayerImgPathConfig:
