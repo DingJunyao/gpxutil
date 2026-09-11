@@ -429,10 +429,21 @@ class Route:
                 # distance = calculate_distance(segment.points[index - 1], point)
                 prev_point = segment.points[index - 1]
                 distance = point.distance_3d(prev_point)
-                if point.time_difference(prev_point) == 0:
-                    logger.warning(f"The time difference between the point and its previous point is 0, skipped: {point}")
-                    continue
-                speed = distance / point.time_difference(prev_point)
+                time_difference = point.time_difference(prev_point)
+                if time_difference is None or time_difference <= 0:
+                    logger.warning(f"The time difference between the point and its previous point is not positive, kept: {point}")
+                    next_point = next(
+                        (candidate for candidate in segment.points[index + 1:]
+                         if candidate.time and point.time
+                         and candidate.time_difference(point) > 0),
+                        None
+                    )
+                    if next_point:
+                        speed = point.distance_3d(next_point) / next_point.time_difference(point)
+                    else:
+                        speed = point.speed
+                else:
+                    speed = distance / time_difference
                 if point.course:
                     course = point.course
                 else:
