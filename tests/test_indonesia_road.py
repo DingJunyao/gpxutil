@@ -24,6 +24,24 @@ def test_tol_by_indonesian_keyword():
     assert info.level == IndonesiaRoadLevel.TOL
 
 
+def test_tol_by_secondary_language_name():
+    # 主语言路名不含关键词、印尼语路名含 'Tol'：多语言候选路名任一命中即判 TOL
+    info = parse_indonesia_road_num('1', ['图卢斯阿尤大街', 'Jalan Tol Tulus Ayu'], PROVINCES, TOL_KEYWORDS)
+    assert info.level == IndonesiaRoadLevel.TOL
+
+
+def test_nasional_when_no_candidate_name_matches():
+    # 候选路名全不含关键词：仍判 NASIONAL
+    info = parse_indonesia_road_num('1', ['图卢斯阿尤大街', 'Tulus Ayu Main Rd.'], PROVINCES, TOL_KEYWORDS)
+    assert info.level == IndonesiaRoadLevel.NASIONAL
+
+
+def test_road_name_candidates_accept_none_members():
+    # 候选列表允许 None/空串成员（缺副语言列的行）
+    info = parse_indonesia_road_num('1', ['图卢斯阿尤大街', None, ''], PROVINCES, TOL_KEYWORDS)
+    assert info.level == IndonesiaRoadLevel.NASIONAL
+
+
 def test_force_tol_without_name():
     # 无路名时用 force_tol 强制判定为收费公路
     info = parse_indonesia_road_num('8', None, PROVINCES, TOL_KEYWORDS, force_tol=True)
@@ -125,6 +143,13 @@ def test_indonesia_road_class():
     assert road.code == '023'
     assert road.region_code == '16'
     assert road.to_svg() is not None
+
+
+def test_indonesia_road_class_multi_lang_names():
+    # 类接口同样接受候选路名列表：主语言名作展示名，印尼语名命中 TOL
+    road = IndonesiaRoad('1', ['图卢斯阿尤大街', 'Jalan Tol Tulus Ayu'], ['Provinsi Jawa Timur'])
+    assert road.level == IndonesiaRoadLevel.TOL
+    assert road.name == '图卢斯阿尤大街'
 
 
 def test_indonesia_road_no_sign():

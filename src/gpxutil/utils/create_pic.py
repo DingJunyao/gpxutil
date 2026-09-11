@@ -21,7 +21,7 @@ import imageio
 from moviepy.video.io.ffmpeg_writer import ffmpeg_write_video
 
 from src.gpxutil.core.config import CONFIG_HANDLER
-from src.gpxutil.models.region import Region, get_default_languages, get_field_suffix
+from src.gpxutil.models.region import Region, get_default_languages, get_field_value
 from src.gpxutil.models.road import IndonesiaRoad
 from .svg_gen import generate_way_num_pad, generate_expwy_pad
 
@@ -157,16 +157,18 @@ def build_area_texts(row: dict, region: Region) -> list[tuple[str, str]]:
     texts = []
     # 主语言 zh：空格正序拼接
     if primary == 'zh':
-        texts.append((primary, ' '.join([i for i in [row['province'], row['city'], row['area']] if i])))
+        texts.append((primary, ' '.join([i for i in [get_field_value(row, 'province', primary),
+                                                     get_field_value(row, 'city', primary),
+                                                     get_field_value(row, 'area', primary)] if i])))
     else:
-        texts.append((primary, ', '.join([i for i in [row[f'area{get_field_suffix(primary)}'],
-                                                    row[f'city{get_field_suffix(primary)}'],
-                                                    row[f'province{get_field_suffix(primary)}']] if i])))
+        texts.append((primary, ', '.join([i for i in [get_field_value(row, 'area', primary),
+                                                      get_field_value(row, 'city', primary),
+                                                      get_field_value(row, 'province', primary)] if i])))
     # 副语言：逗号倒序拼接（同现状英文语序）
     for lang in secondary:
-        text = ', '.join([i for i in [row[f'area{get_field_suffix(lang)}'],
-                                      row[f'city{get_field_suffix(lang)}'],
-                                      row[f'province{get_field_suffix(lang)}']] if i])
+        text = ', '.join([i for i in [get_field_value(row, 'area', lang),
+                                      get_field_value(row, 'city', lang),
+                                      get_field_value(row, 'province', lang)] if i])
         texts.append((lang, text))
     return [t for t in texts if t[1]]
 
@@ -178,7 +180,7 @@ def build_road_texts(row: dict, region: Region) -> list[tuple[str, str]]:
     """
     primary, secondary = get_default_languages(region)
     langs = [primary] + secondary
-    texts = [(lang, row[f'road_name{get_field_suffix(lang)}'] or '') for lang in langs]
+    texts = [(lang, get_field_value(row, 'road_name', lang)) for lang in langs]
     return [t for t in texts if t[1]]
 
 
@@ -187,14 +189,23 @@ def parse_road_signs(row: dict, region: Region) -> list[Drawing]:
     road_num = row.get('road_num') or ''
     if not road_num:
         return []
+    primary, secondary = get_default_languages(region)
+    langs = [primary] + secondary
     sign_list = []
     for road_sign in road_num.split(','):
-        if road_sign in road_num_svg_cache:
-            sign_list.append(road_num_svg_cache[road_sign])
+        if region == Region.ID:
+            # 各语言路名/省名均参与解析：TOL 关键词可命中副语言路名（如 Jalan Tol ...）
+            road = IndonesiaRoad(road_sign,
+                                 [get_field_value(row, 'road_name', lang) for lang in langs],
+                                 [get_field_value(row, 'province', lang) for lang in langs])
+            # 同一编号存在 NASIONAL/TOL 两级，缓存 key 须含等级与地区代码
+            cache_key = (road_sign, road.level, road.region_code) if road.have_sign else None
+        else:
+            cache_key = road_sign
+        if cache_key in road_num_svg_cache:
+            sign_list.append(road_num_svg_cache[cache_key])
             continue
         if region == Region.ID:
-            road = IndonesiaRoad(road_sign, row.get('road_name'),
-                                 [row.get('province_id'), row.get('province'), row.get('province_en')])
             drawing = road.to_svg() if road.have_sign else None
         else:
             # 中国现状逻辑
@@ -208,7 +219,7 @@ def parse_road_signs(row: dict, region: Region) -> list[Drawing]:
             else:
                 drawing = generate_expwy_pad(road_sign[1:], province=road_sign[0])
         if drawing is not None:
-            road_num_svg_cache[road_sign] = drawing
+            road_num_svg_cache[cache_key] = drawing
             sign_list.append(drawing)
     return sign_list
 

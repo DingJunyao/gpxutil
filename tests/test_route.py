@@ -1,9 +1,10 @@
 from datetime import datetime, timezone
+import csv
 
 import gpxpy.gpx
 import pytest
 
-from src.gpxutil.models.route import Route
+from src.gpxutil.models.route import Route, RoutePoint
 
 
 def test_from_gpx_obj_keeps_points_with_duplicate_time():
@@ -46,3 +47,19 @@ def test_from_gpx_obj_keeps_points_with_duplicate_time():
     assert route.points[1].speed == pytest.approx(
         gpx_segment.points[1].distance_3d(gpx_segment.points[2]) / 10
     )
+
+
+def test_to_csv_fills_missing_speeds(tmp_path):
+    route = Route(points=[
+        RoutePoint(index=0, speed=None),
+        RoutePoint(index=1, speed=12.34),
+        RoutePoint(index=2, speed=None),
+    ])
+    csv_path = tmp_path / 'speeds.csv'
+
+    route.to_csv(str(csv_path))
+
+    with open(csv_path, encoding='utf-8-sig', newline='') as csv_file:
+        rows = list(csv.DictReader(csv_file))
+    assert [float(row['speed']) for row in rows] == [0.0, 12.34, 12.34]
+    assert [point.speed for point in route.points] == [None, 12.34, None]

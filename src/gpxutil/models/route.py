@@ -625,6 +625,13 @@ class Route:
         为确保文件能够直接被 Excel 等表格软件打开，指定编码为带 BOM 的 UTF-8
         """
         csv_dict_list = [point.to_csv_dict_obj() for point in self.points]
+        last_speed = 0.0
+        for csv_dict in csv_dict_list:
+            speed = csv_dict.get('speed')
+            if speed is None or speed == '':
+                csv_dict['speed'] = last_speed
+            else:
+                last_speed = speed
         csv_util.dict_list_to_csv(csv_dict_list, csv_file_path, encoding='utf-8-sig')
 
     @staticmethod

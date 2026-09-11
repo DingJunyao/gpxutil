@@ -106,6 +106,22 @@ def test_cn_empty_secondary_keeps_plain_output(tmp_path):
     assert '\n  ' not in text
 
 
+def test_get_info_zh_suffix_columns(tmp_path):
+    """主语言列兼容 _zh 后缀：CSV 用 province_zh 等列名时 get_info 正常取中文"""
+    csv_path = tmp_path / 'zh_suffix.csv'
+    csv_path.write_text(
+        'index,province_zh,city_zh,area_zh,province_en,city_en,area_en,road_num,road_name_zh,road_name_en\n'
+        '0,河南省,三门峡市,渑池县,Henan Province,Sanmenxia City,Mianchi County,G310,黄河路,Huanghe Rd.\n',
+        encoding='utf-8'
+    )
+    city_list = get_info(str(csv_path), Region.CN)
+    assert city_list[0].province == '河南省'
+    assert city_list[0].city == '三门峡市'
+    area = city_list[0].areas[0]
+    assert area.names['zh'] == '渑池县'
+    assert area.roads[0].names['zh'] == '黄河路'
+
+
 def test_merge_itrchg_and_toll_station_single_line_unchanged():
     """单行块：互通+收费站合并行为与旧版一致"""
     result = merge_itrchg_and_toll_station(['新安互通', '新安收费站', '解放路'])

@@ -50,6 +50,17 @@ def test_build_texts_skip_missing_language():
     assert build_road_texts(row, Region.ID) == [('zh', '图卢斯阿尤大街'), ('en', 'Tulus Ayu Main Rd.')]
 
 
+def test_build_texts_zh_suffix_columns():
+    """主语言列兼容 _zh 后缀：CSV 仅有 province_zh 等列时仍能取到中文"""
+    row = {'province_zh': '东爪哇省', 'city_zh': '玛琅县', 'area_zh': '安佩尔加丁镇',
+           'province_id': 'Provinsi Jawa Timur', 'city_id': 'Kabupaten Malang', 'area_id': 'Kecamatan Ampelgading',
+           'province_en': 'Province of East Java', 'city_en': 'Malang Regency', 'area_en': 'Ampelgading District',
+           'road_name_zh': '图卢斯阿尤大街',
+           'road_name_id': 'Jl. Raya Tulus Ayu', 'road_name_en': 'Tulus Ayu Main Rd.'}
+    assert build_area_texts(row, Region.ID) == ID_AREA_TEXTS
+    assert build_road_texts(row, Region.ID) == ID_ROAD_TEXTS
+
+
 def test_parse_road_signs_cn():
     signs = parse_road_signs(CN_ROW, Region.CN)
     assert len(signs) == 1
@@ -64,6 +75,33 @@ def test_parse_road_signs_id():
 
 def test_parse_road_signs_empty():
     assert parse_road_signs({'road_num': ''}, Region.CN) == []
+
+
+def _id_tol_row(road_name_id: str) -> dict:
+    return {'province': '东爪哇省', 'city': '玛琅县', 'area': '安佩尔加丁镇',
+            'province_id': 'Provinsi Jawa Timur', 'province_en': 'Province of East Java',
+            'road_num': '1', 'road_name': '图卢斯阿尤大街',
+            'road_name_id': road_name_id, 'road_name_en': 'Tulus Ayu Main Rd.'}
+
+
+def test_parse_road_signs_tol_by_indonesian_name(monkeypatch):
+    """主语言路名不含关键词、印尼语路名含 'Tol'：盾牌按 TOL 生成（多语言路名参与判断）"""
+    import src.gpxutil.utils.create_pic as create_pic
+    # 清空全局缓存，保证本测试生成新盾牌而非复用其他测试的产物
+    monkeypatch.setattr(create_pic, 'road_num_svg_cache', {})
+    tol_signs = parse_road_signs(_id_tol_row('Jalan Tol Tulus Ayu'), Region.ID)
+    nasional_signs = parse_road_signs(_id_tol_row('Jalan Raya Tulus Ayu'), Region.ID)
+    # 同编号不同等级：色带文字路径不同
+    assert tol_signs[0].tostring() != nasional_signs[0].tostring()
+
+
+def test_parse_road_signs_cache_separates_levels(monkeypatch):
+    """同编号不同等级先后渲染：缓存 key 须区分等级，后者不被前者污染"""
+    import src.gpxutil.utils.create_pic as create_pic
+    monkeypatch.setattr(create_pic, 'road_num_svg_cache', {})
+    first = parse_road_signs(_id_tol_row('Jalan Raya Tulus Ayu'), Region.ID)[0].tostring()
+    second = parse_road_signs(_id_tol_row('Jalan Tol Tulus Ayu'), Region.ID)[0].tostring()
+    assert first != second
 
 
 def test_generate_pic_three_lines():

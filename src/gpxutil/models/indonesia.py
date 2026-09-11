@@ -71,14 +71,15 @@ class IndonesiaRoadInfo:
 
 
 def parse_indonesia_road_num(
-        road_num: str | None, road_name: str | None,
+        road_num: str | None, road_names: str | Sequence[str | None] | None,
         province_texts: Sequence[str | None], tol_keywords: list[str],
         force_tol: bool = False
 ) -> IndonesiaRoadInfo | None:
     """
     解析印尼道路编号。
     :param road_num: CSV road_num 字段，如 '3'、'023'、'16-024'、'16.17-024'；空则无盾牌
-    :param road_name: CSV road_name 字段（中文），用于 TOL 关键词判断
+    :param road_names: 候选路名（各语言路名列），任一含 tol_keywords 关键词即判 TOL；
+                       允许单个字符串、None 或含 None/空串成员的序列
     :param province_texts: 候选省份（印尼语/中文/英文省名，或省级地区代码），按顺序查省码
     :param tol_keywords: TOL 判定关键词（如 ['收费', 'Tol']）
     :param force_tol: 强制按收费公路（TOL）解析，仅 1-2 位编号有效
@@ -112,8 +113,10 @@ def parse_indonesia_road_num(
     if len(code) == 3:
         level = IndonesiaRoadLevel.PROVINSI
     elif len(code) in (1, 2):
-        name_lower = (road_name or '').lower()
-        if force_tol or any(kw.lower() in name_lower for kw in tol_keywords):
+        names = [road_names] if isinstance(road_names, str) else (road_names or [])
+        names_lower = [(name or '').lower() for name in names]
+        if force_tol or any(kw.lower() in name_lower
+                            for name_lower in names_lower for kw in tol_keywords):
             level = IndonesiaRoadLevel.TOL
         else:
             level = IndonesiaRoadLevel.NASIONAL

@@ -6,7 +6,7 @@ from datetime import datetime
 from tqdm import tqdm
 
 from src.gpxutil.models.indonesia import IndonesiaRoadLevel, parse_indonesia_road_num
-from src.gpxutil.models.region import Region, get_default_languages, get_field_suffix
+from src.gpxutil.models.region import Region, get_default_languages, get_field_value
 
 NATIONAL_HIGHWAY_TEMPLATE = "{% label {{code}} red %}"
 PROVINCIAL_HIGHWAY_TEMPLATE = "{% label {{code}} orange %}"
@@ -139,16 +139,16 @@ def get_info(csv_input, region: Region = Region.CN):
     city_info_list: list[CityInfo] = []
     for csv_dict in tqdm(csv_dict_list, desc='Getting area info', unit='point(s)'):
         city_info = CityInfo(
-            province=csv_dict['province'] if csv_dict['province'] else '',
-            city=csv_dict['city'] if csv_dict['city'] else '',
-            names={lang: (csv_dict.get(f'province{get_field_suffix(lang)}') or '',
-                          csv_dict.get(f'city{get_field_suffix(lang)}') or '')
+            province=get_field_value(csv_dict, 'province', primary),
+            city=get_field_value(csv_dict, 'city', primary),
+            names={lang: (get_field_value(csv_dict, 'province', lang),
+                          get_field_value(csv_dict, 'city', lang))
                    for lang in langs},
             areas=[AreaInfo(
-                names={lang: csv_dict.get(f'area{get_field_suffix(lang)}') or '' for lang in langs},
+                names={lang: get_field_value(csv_dict, 'area', lang) for lang in langs},
                 roads=[RoadInfo(
                     code=csv_dict['road_num'].split(',') if csv_dict['road_num'] else [],
-                    names={lang: csv_dict.get(f'road_name{get_field_suffix(lang)}') or '' for lang in langs},
+                    names={lang: get_field_value(csv_dict, 'road_name', lang) for lang in langs},
                )]
             )]
         )

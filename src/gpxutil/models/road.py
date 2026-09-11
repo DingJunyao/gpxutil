@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+
 from svgwrite import Drawing
 
 from src.gpxutil.models.enum_class import ChinaMainlandRoadLevel, ChinaProvinceSingleCharAbbr
@@ -108,20 +110,23 @@ class RoadGroup:
 
 
 class IndonesiaRoad(Road):
-    def __init__(self, road_num: str = None, road_name: str = None, province_texts: list[str] = None,
-                 force_tol: bool = False):
+    def __init__(self, road_num: str = None, road_names: str | Sequence[str | None] = None,
+                 province_texts: list[str] = None, force_tol: bool = False):
         """
         :param road_num: CSV road_num 字段，如 '3'、'023'、'16-024'、'16.17-024'
-        :param road_name: CSV road_name 字段（中文），用于 TOL 关键词判断
+        :param road_names: 候选路名（各语言路名列）：首个非空值作展示名，
+                           任一含 tol_keywords 关键词即判 TOL；允许单个字符串
         :param province_texts: 候选省份文本（印尼语/中文/英文省名，或省级地区代码），用于查省份代码
         :param force_tol: 强制按收费公路（TOL）解析，仅 1-2 位编号有效
         """
         from src.gpxutil.core.config import CONFIG_HANDLER
-        self.name = road_name
+        candidates = [road_names] if isinstance(road_names, str) else (road_names or [])
+        non_empty_names = [name for name in candidates if name]
+        self.name = non_empty_names[0] if non_empty_names else None
         self.english_name = None
         self.road_num = road_num
         info = parse_indonesia_road_num(
-            road_num, road_name, province_texts or [],
+            road_num, road_names, province_texts or [],
             CONFIG_HANDLER.config.traffic_sign.indonesia_road_sign.tol_keywords,
             force_tol=force_tol
         )

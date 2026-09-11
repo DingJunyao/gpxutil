@@ -30,3 +30,19 @@ def get_field_suffix(lang: str) -> str:
     if lang not in LANG_FIELD_SUFFIX:
         raise ValueError(f'Unknown language code: {lang}')
     return LANG_FIELD_SUFFIX[lang]
+
+
+def get_field_value(row: dict, field: str, lang: str) -> str:
+    """按语言读取 CSV 字段值。
+
+    主语言 zh 以无后缀列为准，列缺失或为空时回退 _zh 后缀列（兼容两种列名）；
+    副语言按标准后缀列读取，列缺失或为空返回空串。
+    """
+    candidates = [f'{field}{get_field_suffix(lang)}']
+    if lang == 'zh':
+        candidates.append(f'{field}_zh')
+    for key in candidates:
+        value = row.get(key)
+        if value:
+            return value
+    return ''
